@@ -12,7 +12,7 @@ export const BASIS_POINTS_SCALE = 10000;
  * Maximum safe amount in cents to prevent integer overflow
  * Calculated as Math.floor(Number.MAX_SAFE_INTEGER / BASIS_POINTS_SCALE)
  */
-export const MAX_SAFE_CENTS = Math.floor(Number.MAX_SAFE_INTEGER / BASIS_POINTS_SCALE);
+export const MAX_SAFE_CENTS: number = Math.floor(Number.MAX_SAFE_INTEGER / BASIS_POINTS_SCALE);
 
 /** Default locale for number formatting */
 export const DEFAULT_LOCALE = 'en-US';
