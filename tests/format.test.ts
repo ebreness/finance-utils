@@ -3,7 +3,7 @@
  */
 
 import { assertEquals, assertThrows } from 'https://deno.land/std@0.208.0/assert/mod.ts';
-import { formatCentsToNumber, formatPercentToNumber } from '../format.ts';
+import { formatCentsToNumber, formatPercentToNumber } from '../src/format.ts';
 
 Deno.test('formatCentsToNumber - basic formatting', () => {
   assertEquals(formatCentsToNumber(12345), 123.45);
@@ -61,7 +61,7 @@ Deno.test('formatPercentToNumber - validation errors', () => {
 });
 
 // Import the currency formatting function
-import { formatCentsWithCurrency } from '../format.ts';
+import { formatCentsWithCurrency } from '../src/format.ts';
 
 Deno.test('formatCentsWithCurrency - default formatting (USD)', () => {
   assertEquals(formatCentsWithCurrency(12345), '$123.45');
@@ -116,7 +116,7 @@ Deno.test('formatCentsWithCurrency - validation errors', () => {
 });
 
 // Import the additional formatting functions
-import { formatPercentWithSymbol, clampPercent01, clampPercent0100 } from '../format.ts';
+import { formatPercentWithSymbol, clampPercent01, clampPercent0100 } from '../src/format.ts';
 
 Deno.test('formatPercentWithSymbol - basic formatting', () => {
   assertEquals(formatPercentWithSymbol(13.456), '13.46%');

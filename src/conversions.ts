@@ -2,22 +2,27 @@
  * Conversion functions for monetary amounts and percentages
  */
 
-import type { AmountCents, BasisPoints, DecimalAmount } from './types.ts';
+import type { AmountCents, BasisPoints, DecimalAmount, StringOrNumber } from './types.ts';
 import { CENTS_SCALE, BASIS_POINTS_SCALE, MAX_SAFE_CENTS } from './constants.ts';
-import { validateAmountCents, validateBasisPoints, validateNumber } from './validation.ts';
+import { validateAmountCents, validateBasisPoints, validateNumber, convertToNumber } from './validation.ts';
 
 /**
  * Converts a decimal amount to cents (integer)
- * @param decimalAmount - The decimal amount to convert (e.g., 123.45)
+ * @param decimalAmount - The decimal amount to convert (e.g., 123.45) - accepts string or number
  * @returns The amount in cents (e.g., 12345)
  * @throws Error if the conversion would cause overflow or precision issues
  */
-export function decimalToCents(decimalAmount: DecimalAmount): AmountCents {
-  // Validate input using generic number validation
-  validateNumber(decimalAmount, 'Decimal amount');
+export function decimalToCents(decimalAmount: StringOrNumber): AmountCents {
+  // Convert and validate input
+  const validDecimalAmount = convertToNumber(decimalAmount, 'Decimal amount');
+
+  // Check for negative values
+  if (validDecimalAmount < 0) {
+    throw new Error('Decimal amount cannot be negative');
+  }
 
   // Convert to cents by multiplying by 100 and rounding to handle floating point precision
-  const cents = Math.round(decimalAmount * CENTS_SCALE);
+  const cents = Math.round(validDecimalAmount * CENTS_SCALE);
 
   // Check for overflow
   if (cents > MAX_SAFE_CENTS) {
@@ -43,37 +48,47 @@ export function centsToDecimal(cents: AmountCents): DecimalAmount {
   // Round to exactly 2 decimal places to handle any floating point precision issues
   return Math.round(decimal * 100) / 100;
 }
-/**
 
+/**
  * Converts a percentage in 0-100 format to basis points
- * @param percentage - The percentage value (e.g., 13 for 13%)
+ * @param percentage - The percentage value (e.g., 13 for 13%) - accepts string or number
  * @returns The value in basis points (e.g., 1300 for 13%)
  * @throws Error if the input is invalid
  */
-export function percent100ToBasisPoints(percentage: number): BasisPoints {
-  // Validate input using generic number validation
-  validateNumber(percentage, 'Percentage');
+export function percent100ToBasisPoints(percentage: StringOrNumber): BasisPoints {
+  // Convert and validate input
+  const validPercentage = convertToNumber(percentage, 'Percentage');
+
+  // Check for negative values
+  if (validPercentage < 0) {
+    throw new Error('Percentage cannot be negative');
+  }
 
   // Convert percentage (0-100) to basis points by multiplying by 100
   // 13% = 13 * 100 = 1300 basis points
-  const basisPoints = Math.round(percentage * 100);
+  const basisPoints = Math.round(validPercentage * 100);
 
   return basisPoints;
 }
 
 /**
  * Converts a percentage in 0-1 format to basis points
- * @param percentage - The percentage value (e.g., 0.13 for 13%)
+ * @param percentage - The percentage value (e.g., 0.13 for 13%) - accepts string or number
  * @returns The value in basis points (e.g., 1300 for 13%)
  * @throws Error if the input is invalid
  */
-export function percent1ToBasisPoints(percentage: number): BasisPoints {
-  // Validate input using generic number validation
-  validateNumber(percentage, 'Percentage');
+export function percent1ToBasisPoints(percentage: StringOrNumber): BasisPoints {
+  // Convert and validate input
+  const validPercentage = convertToNumber(percentage, 'Percentage');
+
+  // Check for negative values
+  if (validPercentage < 0) {
+    throw new Error('Percentage cannot be negative');
+  }
 
   // Convert percentage (0-1) to basis points by multiplying by 10000
   // 0.13 = 0.13 * 10000 = 1300 basis points
-  const basisPoints = Math.round(percentage * BASIS_POINTS_SCALE);
+  const basisPoints = Math.round(validPercentage * BASIS_POINTS_SCALE);
 
   return basisPoints;
 }

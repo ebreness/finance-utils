@@ -5,6 +5,7 @@ A precision-focused TypeScript utility library for financial calculations and fo
 ## Features
 
 - **Precision-focused**: Works with integer cents internally to avoid floating-point errors
+- **String input support**: Accept both string and number inputs with automatic conversion and validation
 - **Tax calculations**: Calculate tax amounts and base amounts with exact precision
 - **Currency formatting**: Format monetary amounts with locale-specific formatting
 - **Safe arithmetic**: Overflow-protected arithmetic operations for monetary amounts
@@ -35,7 +36,10 @@ import {
   calculateTaxBreakdown,
   formatCentsWithCurrency,
   decimalToCents,
-  percent100ToBasisPoints
+  percent100ToBasisPoints,
+  convertToAmountCents,
+  convertToBasisPoints,
+  convertToNumber
 } from '@ebreness/finance-utils';
 ```
 
@@ -54,9 +58,15 @@ console.log(`Base: ${formatCentsWithCurrency(baseAmount)}`); // "Base: $1,000.00
 console.log(`Tax: ${formatCentsWithCurrency(taxAmount)}`); // "Tax: $130.00"
 console.log(`Total: ${formatCentsWithCurrency(baseAmount + taxAmount)}`); // "Total: $1,130.00"
 
-// Reverse calculation: from total amount, find base and tax
-const totalAmount = decimalToCents(32000.00); // 3200000 cents
-const breakdown = calculateTaxBreakdown(totalAmount, taxRate);
+// String input support - accept user input as strings
+const userInputAmount = "32000.00"; // From form input
+const userInputTaxRate = "13"; // From form input
+
+const totalCents = convertToAmountCents(userInputAmount); // Converts string to validated cents
+const taxBasisPoints = convertToBasisPoints(userInputTaxRate); // Converts string to validated basis points
+
+// Calculate breakdown with string inputs
+const breakdown = calculateTaxBreakdown(totalCents, taxBasisPoints);
 
 console.log(`Total: ${formatCentsWithCurrency(breakdown.totalAmountCents)}`); // "Total: $32,000.00"
 console.log(`Base: ${formatCentsWithCurrency(breakdown.baseAmountCents)}`); // "Base: $28,318.58"
@@ -83,6 +93,29 @@ Tax rates and percentages are represented in basis points (1 basis point = 0.01%
 // 13% is represented as 1300 basis points
 const taxRate = percent100ToBasisPoints(13); // 1300
 const percentage = basisPointsToPercent100(1300); // 13
+```
+
+### String Input Support
+
+The library accepts both string and number inputs, making it easy to work with user input from forms:
+
+```typescript
+import { convertToAmountCents, convertToBasisPoints, convertToNumber } from '@ebreness/finance-utils';
+
+// Convert string inputs with automatic validation
+const amountCents = convertToAmountCents("1000.00"); // 100000 cents
+const taxRate = convertToBasisPoints("1300"); // 1300 basis points
+const percentage = convertToNumber("13.5", "Tax Rate"); // 13.5
+
+// Handles whitespace automatically
+const trimmedAmount = convertToAmountCents("  1000  "); // 100000 cents
+
+// Provides descriptive error messages
+try {
+  convertToAmountCents("invalid");
+} catch (error) {
+  console.log(error.message); // 'Amount "invalid" is not a valid number'
+}
 ```
 
 ### Exact Precision
@@ -116,6 +149,12 @@ console.log(breakdown.baseAmountCents + breakdown.taxAmountCents === breakdown.t
 
 - `decimalToCents(amount)` / `centsToDecimal(cents)` - Convert between decimal amounts and cents
 - `percent100ToBasisPoints(percent)` / `basisPointsToPercent100(basisPoints)` - Convert between percentages and basis points
+
+### String Input Conversion
+
+- `convertToNumber(value, fieldName)` - Convert string or number to validated number with descriptive errors
+- `convertToAmountCents(value)` - Convert string or number to validated AmountCents
+- `convertToBasisPoints(value)` - Convert string or number to validated BasisPoints
 
 ### Formatting
 

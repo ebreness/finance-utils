@@ -136,3 +136,48 @@ Deno.test("Module exports - complete financial calculation workflow", () => {
   assertEquals(breakdown.baseAmountCents + breakdown.taxAmountCents, breakdown.totalAmountCents);
   assertEquals(centsToDecimal(breakdown.totalAmountCents), originalAmount);
 });
+
+// String input backward compatibility tests
+Deno.test("Module exports - string input backward compatibility", () => {
+  // Test that string inputs work with all exported functions
+  assertEquals(validateAmountCents("12345"), 12345);
+  assertEquals(validateBasisPoints("1300"), 1300);
+  
+  // Test conversion functions with string inputs
+  assertEquals(decimalToCents("123.45"), 12345);
+  assertEquals(percent100ToBasisPoints("13"), 1300);
+  
+  // Test calculation functions with string inputs
+  assertEquals(calculateTaxFromBase("100000", "1300"), 13000);
+  assertEquals(calculateBaseFromTotal("113000", "1300"), 100000);
+  
+  const stringBreakdown = calculateTaxBreakdown("113000", "1300");
+  assertEquals(stringBreakdown.baseAmountCents, 100000);
+  assertEquals(stringBreakdown.taxAmountCents, 13000);
+  assertEquals(stringBreakdown.totalAmountCents, 113000);
+});
+
+Deno.test("Module exports - mixed string/number inputs", () => {
+  // Test mixed inputs produce same results as pure number inputs
+  const numberResult = calculateTaxBreakdown(3200000, 1300);
+  const mixedResult1 = calculateTaxBreakdown("3200000", 1300);
+  const mixedResult2 = calculateTaxBreakdown(3200000, "1300");
+  const stringResult = calculateTaxBreakdown("3200000", "1300");
+  
+  assertEquals(mixedResult1.baseAmountCents, numberResult.baseAmountCents);
+  assertEquals(mixedResult2.baseAmountCents, numberResult.baseAmountCents);
+  assertEquals(stringResult.baseAmountCents, numberResult.baseAmountCents);
+  
+  assertEquals(mixedResult1.taxAmountCents, numberResult.taxAmountCents);
+  assertEquals(mixedResult2.taxAmountCents, numberResult.taxAmountCents);
+  assertEquals(stringResult.taxAmountCents, numberResult.taxAmountCents);
+});
+
+Deno.test("Module exports - string input error handling", () => {
+  // Test that string input errors are descriptive
+  assertThrows(() => validateAmountCents(""), Error, "cannot be empty string");
+  assertThrows(() => validateAmountCents("abc"), Error, "is not a valid number");
+  assertThrows(() => decimalToCents("invalid"), Error, "is not a valid number");
+  assertThrows(() => calculateTaxFromBase("", "1300"), Error, "cannot be empty string");
+  assertThrows(() => calculateTaxFromBase("invalid", "1300"), Error, "is not a valid number");
+});

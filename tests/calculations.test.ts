@@ -3,7 +3,7 @@
  */
 
 import { assertEquals, assertThrows } from 'https://deno.land/std@0.208.0/assert/mod.ts';
-import { calculateTaxFromBase, calculateBaseFromTotal, calculateTaxBreakdown } from '../calculations.ts';
+import { calculateTaxFromBase, calculateBaseFromTotal, calculateTaxBreakdown } from '../src/calculations.ts';
 
 Deno.test('calculateTaxFromBase - basic tax calculations', () => {
   // Test 13% tax on $1000.00 (100000 cents)
@@ -423,4 +423,288 @@ Deno.test('calculateTaxBreakdown - return type verification', () => {
   const expectedKeys = ['baseAmountCents', 'taxAmountCents', 'totalAmountCents'];
   const actualKeys = Object.keys(result).sort();
   assertEquals(actualKeys, expectedKeys.sort());
+});
+
+// String input tests for calculation functions
+
+Deno.test('calculateTaxFromBase - string inputs', () => {
+  // Test basic string inputs
+  assertEquals(calculateTaxFromBase('100000', '1300'), 13000);
+  assertEquals(calculateTaxFromBase('2831858', '1300'), 368142);
+  
+  // Test string inputs with whitespace
+  assertEquals(calculateTaxFromBase(' 100000 ', ' 1300 '), 13000);
+  assertEquals(calculateTaxFromBase('\t100000\t', '\n1300\n'), 13000);
+  
+  // Test mixed string and number inputs
+  assertEquals(calculateTaxFromBase('100000', 1300), 13000);
+  assertEquals(calculateTaxFromBase(100000, '1300'), 13000);
+  
+  // Test string representations of edge cases
+  assertEquals(calculateTaxFromBase('0', '1300'), 0);
+  assertEquals(calculateTaxFromBase('100000', '0'), 0);
+});
+
+Deno.test('calculateTaxFromBase - invalid string inputs', () => {
+  // Test empty strings
+  assertThrows(
+    () => calculateTaxFromBase('', '1300'),
+    Error,
+    'Amount cannot be empty string'
+  );
+  
+  assertThrows(
+    () => calculateTaxFromBase('100000', ''),
+    Error,
+    'Basis points cannot be empty string'
+  );
+  
+  // Test whitespace-only strings
+  assertThrows(
+    () => calculateTaxFromBase('   ', '1300'),
+    Error,
+    'Amount cannot be empty string'
+  );
+  
+  // Test non-numeric strings
+  assertThrows(
+    () => calculateTaxFromBase('abc', '1300'),
+    Error,
+    'Amount "abc" is not a valid number'
+  );
+  
+  assertThrows(
+    () => calculateTaxFromBase('100000', 'xyz'),
+    Error,
+    'Basis points "xyz" is not a valid number'
+  );
+  
+  // Test malformed numbers
+  assertThrows(
+    () => calculateTaxFromBase('12.34.56', '1300'),
+    Error,
+    'Amount "12.34.56" is not a valid number'
+  );
+  
+  assertThrows(
+    () => calculateTaxFromBase('100000', '13.00.00'),
+    Error,
+    'Basis points "13.00.00" is not a valid number'
+  );
+});
+
+Deno.test('calculateBaseFromTotal - string inputs', () => {
+  // Test basic string inputs
+  assertEquals(calculateBaseFromTotal('3200000', '1300'), 2831858);
+  assertEquals(calculateBaseFromTotal('113000', '1300'), 100000);
+  
+  // Test string inputs with whitespace
+  assertEquals(calculateBaseFromTotal(' 3200000 ', ' 1300 '), 2831858);
+  assertEquals(calculateBaseFromTotal('\t113000\t', '\n1300\n'), 100000);
+  
+  // Test mixed string and number inputs
+  assertEquals(calculateBaseFromTotal('3200000', 1300), 2831858);
+  assertEquals(calculateBaseFromTotal(3200000, '1300'), 2831858);
+  
+  // Test string representations of edge cases
+  assertEquals(calculateBaseFromTotal('0', '1300'), 0);
+  assertEquals(calculateBaseFromTotal('100000', '0'), 100000);
+});
+
+Deno.test('calculateBaseFromTotal - invalid string inputs', () => {
+  // Test empty strings
+  assertThrows(
+    () => calculateBaseFromTotal('', '1300'),
+    Error,
+    'Amount cannot be empty string'
+  );
+  
+  assertThrows(
+    () => calculateBaseFromTotal('3200000', ''),
+    Error,
+    'Basis points cannot be empty string'
+  );
+  
+  // Test non-numeric strings
+  assertThrows(
+    () => calculateBaseFromTotal('abc', '1300'),
+    Error,
+    'Amount "abc" is not a valid number'
+  );
+  
+  assertThrows(
+    () => calculateBaseFromTotal('3200000', 'xyz'),
+    Error,
+    'Basis points "xyz" is not a valid number'
+  );
+  
+  // Test malformed numbers
+  assertThrows(
+    () => calculateBaseFromTotal('32.00.00', '1300'),
+    Error,
+    'Amount "32.00.00" is not a valid number'
+  );
+});
+
+Deno.test('calculateTaxBreakdown - string inputs', () => {
+  // Test basic string inputs
+  const result1 = calculateTaxBreakdown('3200000', '1300');
+  assertEquals(result1.baseAmountCents, 2831858);
+  assertEquals(result1.taxAmountCents, 368142);
+  assertEquals(result1.totalAmountCents, 3200000);
+  
+  const result2 = calculateTaxBreakdown('113000', '1300');
+  assertEquals(result2.baseAmountCents, 100000);
+  assertEquals(result2.taxAmountCents, 13000);
+  assertEquals(result2.totalAmountCents, 113000);
+  
+  // Test string inputs with whitespace
+  const result3 = calculateTaxBreakdown(' 3200000 ', ' 1300 ');
+  assertEquals(result3.baseAmountCents, 2831858);
+  assertEquals(result3.taxAmountCents, 368142);
+  assertEquals(result3.totalAmountCents, 3200000);
+  
+  // Test mixed string and number inputs
+  const result4 = calculateTaxBreakdown('3200000', 1300);
+  assertEquals(result4.baseAmountCents, 2831858);
+  assertEquals(result4.taxAmountCents, 368142);
+  assertEquals(result4.totalAmountCents, 3200000);
+  
+  const result5 = calculateTaxBreakdown(3200000, '1300');
+  assertEquals(result5.baseAmountCents, 2831858);
+  assertEquals(result5.taxAmountCents, 368142);
+  assertEquals(result5.totalAmountCents, 3200000);
+});
+
+Deno.test('calculateTaxBreakdown - invalid string inputs', () => {
+  // Test empty strings
+  assertThrows(
+    () => calculateTaxBreakdown('', '1300'),
+    Error,
+    'Amount cannot be empty string'
+  );
+  
+  assertThrows(
+    () => calculateTaxBreakdown('3200000', ''),
+    Error,
+    'Basis points cannot be empty string'
+  );
+  
+  // Test non-numeric strings
+  assertThrows(
+    () => calculateTaxBreakdown('abc', '1300'),
+    Error,
+    'Amount "abc" is not a valid number'
+  );
+  
+  assertThrows(
+    () => calculateTaxBreakdown('3200000', 'xyz'),
+    Error,
+    'Basis points "xyz" is not a valid number'
+  );
+});
+
+Deno.test('calculation functions - string input equivalence', () => {
+  // Test that string and number inputs produce identical results
+  const testCases = [
+    { total: 3200000, tax: 1300 },
+    { total: 113000, tax: 1300 },
+    { total: 1000000, tax: 875 },
+    { total: 500000, tax: 1250 },
+    { total: 123456, tax: 1575 },
+  ];
+  
+  testCases.forEach(({ total, tax }) => {
+    // Test calculateTaxFromBase equivalence
+    const base = Math.round(total / (1 + tax / 10000));
+    const taxFromBaseNumber = calculateTaxFromBase(base, tax);
+    const taxFromBaseString = calculateTaxFromBase(base.toString(), tax.toString());
+    assertEquals(taxFromBaseNumber, taxFromBaseString, 
+      `calculateTaxFromBase: number vs string mismatch for base ${base}, tax ${tax}`);
+    
+    // Test calculateBaseFromTotal equivalence
+    const baseFromTotalNumber = calculateBaseFromTotal(total, tax);
+    const baseFromTotalString = calculateBaseFromTotal(total.toString(), tax.toString());
+    assertEquals(baseFromTotalNumber, baseFromTotalString,
+      `calculateBaseFromTotal: number vs string mismatch for total ${total}, tax ${tax}`);
+    
+    // Test calculateTaxBreakdown equivalence
+    const breakdownNumber = calculateTaxBreakdown(total, tax);
+    const breakdownString = calculateTaxBreakdown(total.toString(), tax.toString());
+    assertEquals(breakdownNumber.baseAmountCents, breakdownString.baseAmountCents,
+      `calculateTaxBreakdown base: number vs string mismatch for total ${total}, tax ${tax}`);
+    assertEquals(breakdownNumber.taxAmountCents, breakdownString.taxAmountCents,
+      `calculateTaxBreakdown tax: number vs string mismatch for total ${total}, tax ${tax}`);
+    assertEquals(breakdownNumber.totalAmountCents, breakdownString.totalAmountCents,
+      `calculateTaxBreakdown total: number vs string mismatch for total ${total}, tax ${tax}`);
+  });
+});
+
+Deno.test('calculation functions - mixed string/number scenarios', () => {
+  // Test all combinations of string/number inputs
+  const total = 3200000;
+  const tax = 1300;
+  const expectedBase = 2831858;
+  const expectedTax = 368142;
+  
+  // calculateTaxFromBase with mixed inputs
+  assertEquals(calculateTaxFromBase(expectedBase, tax.toString()), expectedTax);
+  assertEquals(calculateTaxFromBase(expectedBase.toString(), tax), expectedTax);
+  
+  // calculateBaseFromTotal with mixed inputs
+  assertEquals(calculateBaseFromTotal(total, tax.toString()), expectedBase);
+  assertEquals(calculateBaseFromTotal(total.toString(), tax), expectedBase);
+  
+  // calculateTaxBreakdown with mixed inputs
+  const result1 = calculateTaxBreakdown(total, tax.toString());
+  assertEquals(result1.baseAmountCents, expectedBase);
+  assertEquals(result1.taxAmountCents, expectedTax);
+  
+  const result2 = calculateTaxBreakdown(total.toString(), tax);
+  assertEquals(result2.baseAmountCents, expectedBase);
+  assertEquals(result2.taxAmountCents, expectedTax);
+});
+
+Deno.test('calculation functions - string validation consistency', () => {
+  // Test that string inputs undergo the same validation as number inputs
+  
+  // Test negative values as strings
+  assertThrows(
+    () => calculateTaxFromBase('-100', '1300'),
+    Error,
+    'Amount cannot be negative'
+  );
+  
+  assertThrows(
+    () => calculateBaseFromTotal('-100', '1300'),
+    Error,
+    'Amount cannot be negative'
+  );
+  
+  assertThrows(
+    () => calculateTaxBreakdown('-100', '1300'),
+    Error,
+    'Amount cannot be negative'
+  );
+  
+  // Test excessive values as strings
+  const largeValue = (Number.MAX_SAFE_INTEGER + 1).toString();
+  
+  assertThrows(
+    () => calculateTaxFromBase(largeValue, '1300'),
+    Error,
+    'exceeds maximum safe value'
+  );
+  
+  assertThrows(
+    () => calculateBaseFromTotal(largeValue, '1300'),
+    Error,
+    'exceeds maximum safe value'
+  );
+  
+  assertThrows(
+    () => calculateTaxBreakdown(largeValue, '1300'),
+    Error,
+    'exceeds maximum safe value'
+  );
 });

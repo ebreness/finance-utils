@@ -5,6 +5,7 @@ This document provides practical examples of using the finance-calculations libr
 ## Table of Contents
 
 - [Basic Usage](#basic-usage)
+- [String Input Support](#string-input-support)
 - [Tax Calculations](#tax-calculations)
 - [Currency Formatting](#currency-formatting)
 - [Conversions](#conversions)
@@ -25,6 +26,9 @@ import {
   decimalToCents,
   centsToDecimal,
   percent100ToBasisPoints,
+  convertToAmountCents,
+  convertToBasisPoints,
+  convertToNumber,
   safeAdd,
   safeMultiply
 } from '@ebreness/finance-utils';
@@ -55,6 +59,161 @@ const taxRate = percent100ToBasisPoints(13); // 1300
 
 // Convert 5.5% to basis points
 const salesTax = percent100ToBasisPoints(5.5); // 550
+```
+
+## String Input Support
+
+The library accepts both string and number inputs, making it perfect for handling user input from forms, APIs, or configuration files.
+
+### Basic String Conversion
+
+```typescript
+// Convert string inputs to validated numbers
+const amount = convertToNumber("123.45", "Amount"); // 123.45
+const price = convertToNumber("  1000.00  ", "Price"); // 1000.00 (whitespace trimmed)
+
+// Convert strings to cents with validation
+const amountCents = convertToAmountCents("12345"); // 12345 cents
+const priceCents = convertToAmountCents("100000"); // 100000 cents
+
+// Convert strings to basis points with validation
+const taxRate = convertToBasisPoints("1300"); // 1300 basis points (13%)
+const salesTax = convertToBasisPoints("550"); // 550 basis points (5.5%)
+```
+
+### Handling User Form Input
+
+```typescript
+// Simulate form input (all strings)
+const formData = {
+  totalAmount: "32000.00",
+  taxRate: "13"
+};
+
+// Convert and validate form inputs
+const totalCents = convertToAmountCents(formData.totalAmount); // 3200000 cents
+const taxBasisPoints = convertToBasisPoints(formData.taxRate); // 1300 basis points
+
+// Perform calculations with converted values
+const breakdown = calculateTaxBreakdown(totalCents, taxBasisPoints);
+
+console.log(`Total: ${formatCentsWithCurrency(breakdown.totalAmountCents)}`); // "Total: $32,000.00"
+console.log(`Base: ${formatCentsWithCurrency(breakdown.baseAmountCents)}`); // "Base: $28,318.58"
+console.log(`Tax: ${formatCentsWithCurrency(breakdown.taxAmountCents)}`); // "Tax: $3,681.42"
+```
+
+### Error Handling with Descriptive Messages
+
+```typescript
+// The library provides descriptive error messages for invalid inputs
+try {
+  convertToAmountCents("invalid-amount");
+} catch (error) {
+  console.log(error.message); // 'Amount "invalid-amount" is not a valid number'
+}
+
+try {
+  convertToAmountCents(""); // Empty string
+} catch (error) {
+  console.log(error.message); // 'Amount cannot be empty string'
+}
+
+try {
+  convertToAmountCents("123.45"); // Decimal not allowed for cents
+} catch (error) {
+  console.log(error.message); // 'Amount in cents must be an integer'
+}
+
+try {
+  convertToBasisPoints("-100"); // Negative not allowed
+} catch (error) {
+  console.log(error.message); // 'Basis points cannot be negative'
+}
+```
+
+### Mixed Input Types
+
+```typescript
+// The library handles both strings and numbers seamlessly
+function calculateOrderTotal(baseAmount: string | number, taxRate: string | number) {
+  const baseCents = convertToAmountCents(baseAmount);
+  const taxBasisPoints = convertToBasisPoints(taxRate);
+  
+  const taxCents = calculateTaxFromBase(baseCents, taxBasisPoints);
+  const totalCents = safeAdd(baseCents, taxCents);
+  
+  return {
+    base: formatCentsWithCurrency(baseCents),
+    tax: formatCentsWithCurrency(taxCents),
+    total: formatCentsWithCurrency(totalCents)
+  };
+}
+
+// Works with strings
+console.log(calculateOrderTotal("100000", "1300"));
+// Output: { base: '$1,000.00', tax: '$130.00', total: '$1,130.00' }
+
+// Works with numbers
+console.log(calculateOrderTotal(100000, 1300));
+// Output: { base: '$1,000.00', tax: '$130.00', total: '$1,130.00' }
+
+// Works with mixed types
+console.log(calculateOrderTotal("100000", 1300));
+// Output: { base: '$1,000.00', tax: '$130.00', total: '$1,130.00' }
+```
+
+### API Response Processing
+
+```typescript
+// Process API responses that return string values
+interface ApiResponse {
+  amount: string;
+  tax_rate: string;
+  currency: string;
+}
+
+function processApiResponse(response: ApiResponse) {
+  try {
+    // Convert string values with validation
+    const amountCents = convertToAmountCents(response.amount);
+    const taxBasisPoints = convertToBasisPoints(response.tax_rate);
+    
+    // Calculate breakdown
+    const breakdown = calculateTaxBreakdown(amountCents, taxBasisPoints);
+    
+    return {
+      success: true,
+      data: {
+        base: formatCentsWithCurrency(breakdown.baseAmountCents, response.currency),
+        tax: formatCentsWithCurrency(breakdown.taxAmountCents, response.currency),
+        total: formatCentsWithCurrency(breakdown.totalAmountCents, response.currency)
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// Example usage
+const apiResponse: ApiResponse = {
+  amount: "113000",
+  tax_rate: "1300",
+  currency: "$"
+};
+
+const result = processApiResponse(apiResponse);
+console.log(result);
+// Output: {
+//   success: true,
+//   data: {
+//     base: '$1,000.00',
+//     tax: '$130.00',
+//     total: '$1,130.00'
+//   }
+// }
 ```
 
 ## Tax Calculations

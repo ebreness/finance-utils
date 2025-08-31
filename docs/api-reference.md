@@ -7,6 +7,7 @@ This document provides comprehensive documentation for all methods available in 
 - [Types](#types)
 - [Constants](#constants)
 - [Validation Functions](#validation-functions)
+- [String Conversion Functions](#string-conversion-functions)
 - [Conversion Functions](#conversion-functions)
 - [Arithmetic Functions](#arithmetic-functions)
 - [Tax Calculation Functions](#tax-calculation-functions)
@@ -31,6 +32,12 @@ Tax rate or percentage represented in basis points (integer). 1 basis point = 0.
 type DecimalAmount = number;
 ```
 Decimal amount for display purposes (number with 2 decimal places). Example: 123.45.
+
+### StringOrNumber
+```typescript
+type StringOrNumber = string | number;
+```
+Union type for inputs that can be either string or number. Used to support string inputs that will be converted to numbers.
 
 ### TaxCalculationResult
 ```typescript
@@ -115,6 +122,68 @@ Validates that a value is a valid tax rate in basis points.
 ```typescript
 validateBasisPoints(1300); // returns 1300 (13%)
 validateBasisPoints(-100); // throws Error: Basis points cannot be negative
+```
+
+## String Conversion Functions
+
+### convertToNumber(value, fieldName)
+Converts a string or number to a validated number with comprehensive error handling.
+
+**Parameters:**
+- `value: StringOrNumber` - String or number input to convert
+- `fieldName: string` - Field name for descriptive error messages
+
+**Returns:** `number` - Converted and validated number
+
+**Throws:** Error if conversion fails or validation fails
+
+**Example:**
+```typescript
+convertToNumber("123.45", "Amount"); // returns 123.45
+convertToNumber("  1000  ", "Price"); // returns 1000 (whitespace trimmed)
+convertToNumber(123, "Value"); // returns 123 (numbers pass through)
+convertToNumber("invalid", "Test"); // throws Error: Test "invalid" is not a valid number
+convertToNumber("", "Amount"); // throws Error: Amount cannot be empty string
+```
+
+### convertToAmountCents(value)
+Converts string or number to AmountCents with full validation.
+
+**Parameters:**
+- `value: StringOrNumber` - String or number input representing monetary amount in cents
+
+**Returns:** `AmountCents` - Validated AmountCents
+
+**Throws:** Error if conversion or validation fails
+
+**Example:**
+```typescript
+convertToAmountCents("12345"); // returns 12345
+convertToAmountCents("  1000  "); // returns 1000 (whitespace trimmed)
+convertToAmountCents(12345); // returns 12345 (numbers pass through)
+convertToAmountCents("123.45"); // throws Error: Amount in cents must be an integer
+convertToAmountCents("-100"); // throws Error: Amount cannot be negative
+convertToAmountCents("invalid"); // throws Error: Amount "invalid" is not a valid number
+```
+
+### convertToBasisPoints(value)
+Converts string or number to BasisPoints with full validation.
+
+**Parameters:**
+- `value: StringOrNumber` - String or number input representing tax rate in basis points
+
+**Returns:** `BasisPoints` - Validated BasisPoints
+
+**Throws:** Error if conversion or validation fails
+
+**Example:**
+```typescript
+convertToBasisPoints("1300"); // returns 1300 (13%)
+convertToBasisPoints("  1300  "); // returns 1300 (whitespace trimmed)
+convertToBasisPoints(1300); // returns 1300 (numbers pass through)
+convertToBasisPoints("13.5"); // throws Error: Basis points must be an integer
+convertToBasisPoints("-100"); // throws Error: Basis points cannot be negative
+convertToBasisPoints("invalid"); // throws Error: Basis points "invalid" is not a valid number
 ```
 
 ## Conversion Functions

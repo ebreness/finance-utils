@@ -11,8 +11,9 @@
  * - Currency and percentage formatting utilities
  * - Comprehensive input validation and overflow protection
  * - TypeScript support with strict type definitions
+ * - String input support for seamless integration with forms and APIs
  * 
- * @example Basic Usage
+ * @example Basic Usage with Numbers
  * ```js
  * import { 
  *   calculateTaxBreakdown, 
@@ -34,18 +35,42 @@
  * const total = formatCentsWithCurrency(breakdown.totalAmountCents);     // "$32,000.00"
  * ```
  * 
+ * @example String Input Support
+ * ```js
+ * import { 
+ *   calculateTaxBreakdown, 
+ *   decimalToCents, 
+ *   calculateBaseFromTotal,
+ *   percent100ToBasisPoints 
+ * } from '@ebreness/finance-utils';
+ * 
+ * // All functions accept string inputs - perfect for form data and API responses
+ * const totalCents = decimalToCents("32000.00"); // 3200000
+ * const taxRate = percent100ToBasisPoints("13"); // 1300
+ * 
+ * // Calculate with string inputs
+ * const breakdown = calculateTaxBreakdown("3200000", "1300");
+ * // Returns: { baseAmountCents: 2831858, taxAmountCents: 368142, totalAmountCents: 3200000 }
+ * 
+ * // Mix string and number inputs as needed
+ * const baseCents = calculateBaseFromTotal("113000", 1300); // 100000
+ * 
+ * // Handles whitespace automatically
+ * const cleanedCents = decimalToCents("  123.45  "); // 12345
+ * ```
+ * 
  * @example Tax Calculations
  * ```js
  * import { calculateTaxFromBase, calculateBaseFromTotal } from '@ebreness/finance-utils';
  * 
- * // Calculate tax on $1,000.00 at 13% rate
+ * // Calculate tax on $1,000.00 at 13% rate (using numbers)
  * const baseCents = 100000; // $1,000.00
  * const taxRate = 1300;     // 13% in basis points
  * const taxCents = calculateTaxFromBase(baseCents, taxRate); // 13000 ($130.00)
  * 
- * // Calculate base amount from total including taxes
- * const totalCents = 113000; // $1,130.00
- * const calculatedBase = calculateBaseFromTotal(totalCents, taxRate); // 100000 ($1,000.00)
+ * // Calculate base amount from total including taxes (using strings)
+ * const totalCents = "113000"; // $1,130.00 from form input
+ * const calculatedBase = calculateBaseFromTotal(totalCents, "1300"); // 100000 ($1,000.00)
  * ```
  * 
  * @example Conversions and Formatting
@@ -57,12 +82,12 @@
  *   formatPercentWithSymbol 
  * } from '@ebreness/finance-utils';
  * 
- * // Convert between decimal and cents
- * const cents = decimalToCents(123.45);    // 12345
- * const decimal = centsToDecimal(12345);   // 123.45
+ * // Convert between decimal and cents (string inputs supported)
+ * const cents = decimalToCents("123.45");    // 12345
+ * const decimal = centsToDecimal(12345);     // 123.45
  * 
- * // Convert percentage to basis points
- * const basisPoints = percent100ToBasisPoints(13); // 1300 (13% = 1300 basis points)
+ * // Convert percentage to basis points (string inputs supported)
+ * const basisPoints = percent100ToBasisPoints("13"); // 1300 (13% = 1300 basis points)
  * 
  * // Format percentage for display
  * const formatted = formatPercentWithSymbol(1300); // "13.00%"
@@ -76,6 +101,7 @@ export type {
   DecimalAmount,
   TaxCalculationResult,
   FormatOptions,
+  StringOrNumber,
 } from './src/types.ts';
 
 // Export constants
@@ -96,6 +122,9 @@ export {
   validateNumber,
   validateIntegerForFormatting,
   validateNumberForFormatting,
+  convertToNumber,
+  convertToAmountCents,
+  convertToBasisPoints,
 } from './src/validation.ts';
 
 // Export conversion functions
@@ -128,17 +157,32 @@ export {
 /**
  * Calculate tax amount from base amount using basis points.
  * 
- * @param baseCents - Base amount in cents (before taxes)
- * @param taxBasisPoints - Tax rate in basis points (1300 = 13%)
+ * @param baseCents - Base amount in cents (before taxes) - accepts string or number
+ * @param taxBasisPoints - Tax rate in basis points (1300 = 13%) - accepts string or number
  * @returns Tax amount in cents
  * @throws Error if inputs are invalid or calculation would cause overflow
  * 
- * @example
+ * @example Number inputs
  * ```js
  * import { calculateTaxFromBase } from '@ebreness/finance-utils';
  * 
  * calculateTaxFromBase(100000, 1300); // returns 13000 (13% of $1000.00 = $130.00)
  * calculateTaxFromBase(2831858, 1300); // returns 368142 (13% of $28,318.58 = $3,681.42)
+ * ```
+ * 
+ * @example String inputs
+ * ```js
+ * import { calculateTaxFromBase } from '@ebreness/finance-utils';
+ * 
+ * // Perfect for form data and API responses
+ * calculateTaxFromBase("100000", "1300"); // returns 13000
+ * calculateTaxFromBase("2831858", "1300"); // returns 368142
+ * 
+ * // Mix string and number inputs
+ * calculateTaxFromBase("100000", 1300); // returns 13000
+ * 
+ * // Handles whitespace automatically
+ * calculateTaxFromBase("  100000  ", " 1300 "); // returns 13000
  * ```
  */
 export { calculateTaxFromBase } from './src/calculations.ts';
@@ -149,17 +193,32 @@ export { calculateTaxFromBase } from './src/calculations.ts';
  * This function implements the core algorithm: base = total / (1 + rate)
  * Where rate = taxBasisPoints / BASIS_POINTS_SCALE
  * 
- * @param totalCents - Total amount including taxes in cents
- * @param taxBasisPoints - Tax rate in basis points (1300 = 13%)
+ * @param totalCents - Total amount including taxes in cents - accepts string or number
+ * @param taxBasisPoints - Tax rate in basis points (1300 = 13%) - accepts string or number
  * @returns Base amount in cents (before taxes)
  * @throws Error if inputs are invalid, calculation would cause overflow, or precision cannot be maintained
  * 
- * @example
+ * @example Number inputs
  * ```js
  * import { calculateBaseFromTotal } from '@ebreness/finance-utils';
  * 
  * calculateBaseFromTotal(3200000, 1300); // returns 2831858 (base: $28,318.58, tax: $3,681.42)
  * calculateBaseFromTotal(113000, 1300); // returns 100000 (base: $1,000.00, tax: $130.00)
+ * ```
+ * 
+ * @example String inputs
+ * ```js
+ * import { calculateBaseFromTotal } from '@ebreness/finance-utils';
+ * 
+ * // Perfect for form data and API responses
+ * calculateBaseFromTotal("3200000", "1300"); // returns 2831858
+ * calculateBaseFromTotal("113000", "1300"); // returns 100000
+ * 
+ * // Mix string and number inputs
+ * calculateBaseFromTotal("3200000", 1300); // returns 2831858
+ * 
+ * // Handles whitespace automatically
+ * calculateBaseFromTotal("  113000  ", " 1300 "); // returns 100000
  * ```
  */
 export { calculateBaseFromTotal } from './src/calculations.ts';
@@ -170,12 +229,12 @@ export { calculateBaseFromTotal } from './src/calculations.ts';
  * This function provides a complete breakdown of a total amount into its base and tax components.
  * It ensures exact precision where base + tax = total.
  * 
- * @param totalCents - Total amount including taxes in cents
- * @param taxBasisPoints - Tax rate in basis points (1300 = 13%)
+ * @param totalCents - Total amount including taxes in cents - accepts string or number
+ * @param taxBasisPoints - Tax rate in basis points (1300 = 13%) - accepts string or number
  * @returns Complete tax calculation breakdown with base, tax, and total amounts
  * @throws Error if inputs are invalid or calculation would cause overflow
  * 
- * @example
+ * @example Number inputs
  * ```js
  * import { calculateTaxBreakdown } from '@ebreness/finance-utils';
  * 
@@ -184,6 +243,23 @@ export { calculateBaseFromTotal } from './src/calculations.ts';
  * 
  * calculateTaxBreakdown(113000, 1300);
  * // returns { baseAmountCents: 100000, taxAmountCents: 13000, totalAmountCents: 113000 }
+ * ```
+ * 
+ * @example String inputs
+ * ```js
+ * import { calculateTaxBreakdown } from '@ebreness/finance-utils';
+ * 
+ * // Perfect for form data and API responses
+ * calculateTaxBreakdown("3200000", "1300");
+ * // returns { baseAmountCents: 2831858, taxAmountCents: 368142, totalAmountCents: 3200000 }
+ * 
+ * // Mix string and number inputs
+ * calculateTaxBreakdown("113000", 1300);
+ * // returns { baseAmountCents: 100000, taxAmountCents: 13000, totalAmountCents: 113000 }
+ * 
+ * // Handles whitespace automatically
+ * calculateTaxBreakdown("  3200000  ", " 1300 ");
+ * // returns { baseAmountCents: 2831858, taxAmountCents: 368142, totalAmountCents: 3200000 }
  * ```
  */
 export { calculateTaxBreakdown } from './src/calculations.ts';

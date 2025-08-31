@@ -3,6 +3,12 @@
  */
 
 /**
+ * Union type for inputs that can be either string or number
+ * Used to support string inputs that will be converted to numbers
+ */
+export type StringOrNumber = string | number;
+
+/**
  * Monetary amount represented in cents (integer)
  * Example: $123.45 = 12345 cents
  */

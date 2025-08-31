@@ -3,8 +3,8 @@
  */
 
 import { assertEquals, assertThrows } from 'https://deno.land/std@0.208.0/assert/mod.ts';
-import { safeAdd, safeSubtract, safeMultiply } from '../arithmetic.ts';
-import { MAX_SAFE_CENTS } from '../constants.ts';
+import { safeAdd, safeSubtract, safeMultiply } from '../src/arithmetic.ts';
+import { MAX_SAFE_CENTS } from '../src/constants.ts';
 
 Deno.test('safeAdd - basic addition', () => {
   assertEquals(safeAdd(100, 200), 300);
@@ -21,12 +21,12 @@ Deno.test('safeAdd - large numbers', () => {
 
 Deno.test('safeAdd - input validation errors', () => {
   // Null/undefined inputs
-  assertThrows(() => safeAdd(null as any, 100), Error, 'Amount cannot be null or undefined');
-  assertThrows(() => safeAdd(100, undefined as any), Error, 'Amount cannot be null or undefined');
+  assertThrows(() => safeAdd(null as any, 100), Error, 'Amount must be a string or number, received object');
+  assertThrows(() => safeAdd(100, undefined as any), Error, 'Amount must be a string or number, received undefined');
   
-  // Non-number inputs
-  assertThrows(() => safeAdd('100' as any, 200), Error, 'Amount must be a number');
-  assertThrows(() => safeAdd(100, '200' as any), Error, 'Amount must be a number');
+  // Invalid string inputs (strings are now supported, so test invalid ones)
+  assertThrows(() => safeAdd('abc' as any, 200), Error, 'Amount "abc" is not a valid number');
+  assertThrows(() => safeAdd(100, 'xyz' as any), Error, 'Amount "xyz" is not a valid number');
   
   // NaN inputs
   assertThrows(() => safeAdd(NaN, 100), Error, 'Amount cannot be NaN');
@@ -72,9 +72,9 @@ Deno.test('safeSubtract - large numbers', () => {
 
 Deno.test('safeSubtract - input validation errors', () => {
   // Same validation errors as safeAdd
-  assertThrows(() => safeSubtract(null as any, 100), Error, 'Amount cannot be null or undefined');
-  assertThrows(() => safeSubtract(100, undefined as any), Error, 'Amount cannot be null or undefined');
-  assertThrows(() => safeSubtract('100' as any, 200), Error, 'Amount must be a number');
+  assertThrows(() => safeSubtract(null as any, 100), Error, 'Amount must be a string or number, received object');
+  assertThrows(() => safeSubtract(100, undefined as any), Error, 'Amount must be a string or number, received undefined');
+  assertThrows(() => safeSubtract('abc' as any, 200), Error, 'Amount "abc" is not a valid number');
   assertThrows(() => safeSubtract(100, NaN), Error, 'Amount cannot be NaN');
   assertThrows(() => safeSubtract(Infinity, 100), Error, 'Amount must be finite');
   assertThrows(() => safeSubtract(100.5, 200), Error, 'Amount in cents must be an integer');
@@ -128,9 +128,9 @@ Deno.test('safeMultiply - rounding behavior', () => {
 
 Deno.test('safeMultiply - amount validation errors', () => {
   // Amount validation (same as other functions)
-  assertThrows(() => safeMultiply(null as any, 2), Error, 'Amount cannot be null or undefined');
-  assertThrows(() => safeMultiply(undefined as any, 2), Error, 'Amount cannot be null or undefined');
-  assertThrows(() => safeMultiply('100' as any, 2), Error, 'Amount must be a number');
+  assertThrows(() => safeMultiply(null as any, 2), Error, 'Amount must be a string or number, received object');
+  assertThrows(() => safeMultiply(undefined as any, 2), Error, 'Amount must be a string or number, received undefined');
+  assertThrows(() => safeMultiply('abc' as any, 2), Error, 'Amount "abc" is not a valid number');
   assertThrows(() => safeMultiply(NaN, 2), Error, 'Amount cannot be NaN');
   assertThrows(() => safeMultiply(Infinity, 2), Error, 'Amount must be finite');
   assertThrows(() => safeMultiply(100.5, 2), Error, 'Amount in cents must be an integer');
@@ -231,7 +231,7 @@ Deno.test('error message quality', () => {
   try {
     safeAdd(null as any, 100);
   } catch (error) {
-    assertEquals((error as Error).message.includes('null or undefined'), true);
+    assertEquals((error as Error).message.includes('string or number'), true);
   }
   
   try {
