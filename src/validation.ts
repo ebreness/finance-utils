@@ -7,12 +7,18 @@ import { MAX_SAFE_CENTS, MAX_SAFE_INTEGER } from './constants.ts';
 
 /**
  * Converts a string or number to a validated number
+ * String inputs with leading/trailing whitespace are accepted and trimmed
  * @param value - String or number input
  * @param fieldName - Field name for error messages
  * @returns Converted and validated number
  * @throws Error if conversion fails or validation fails
  */
 export function convertToNumber(value: StringOrNumber, fieldName: string): number {
+  // Check type first - handle null/undefined as type errors
+  if (typeof value !== 'string' && typeof value !== 'number') {
+    throw new Error(`${fieldName} must be a string or number, received ${typeof value}`);
+  }
+  
   // If already a number, validate it first
   if (typeof value === 'number') {
     // Check for NaN
@@ -28,28 +34,35 @@ export function convertToNumber(value: StringOrNumber, fieldName: string): numbe
     return value;
   }
   
-  // Handle string conversion
+  // Handle string conversion with automatic trimming
   if (typeof value === 'string') {
-    // Trim whitespace
-    const trimmed = value.trim();
-    
-    // Check for empty string
-    if (trimmed === '') {
+    // Check for empty string before trimming
+    if (value === '') {
       throw new Error(`${fieldName} cannot be empty string`);
     }
     
-    // Convert to number
-    const converted = Number(trimmed);
+    // Check for whitespace-only string after trimming
+    if (value.trim() === '') {
+      throw new Error(`${fieldName} cannot be empty string`);
+    }
+    
+    // Convert to number using Number constructor (automatically trims whitespace)
+    const converted = Number(value);
     
     // Check if conversion was successful
     if (Number.isNaN(converted)) {
       throw new Error(`${fieldName} "${value}" is not a valid number`);
     }
     
+    // Check for infinity after conversion
+    if (!Number.isFinite(converted)) {
+      throw new Error(`${fieldName} "${value}" is not a valid number`);
+    }
+    
     return converted;
   }
   
-  // Handle other types
+  // This should never be reached due to the type check above
   throw new Error(`${fieldName} must be a string or number, received ${typeof value}`);
 }
 
@@ -82,7 +95,7 @@ export function convertToBasisPoints(value: StringOrNumber): BasisPoints {
  * @throws Error if the value is invalid
  */
 export function validateAmountCents(value: StringOrNumber): AmountCents {
-  // Convert string to number if needed
+  // Convert string to number if needed using convertToNumber
   const numericValue = convertToNumber(value, 'Amount');
 
   // Check if it's an integer (cents must be whole numbers)
@@ -110,7 +123,7 @@ export function validateAmountCents(value: StringOrNumber): AmountCents {
  * @throws Error if the value is invalid
  */
 export function validateBasisPoints(value: StringOrNumber): BasisPoints {
-  // Convert string to number if needed
+  // Convert string to number if needed using convertToNumber
   const numericValue = convertToNumber(value, 'Basis points');
 
   // Check if it's an integer (basis points must be whole numbers)

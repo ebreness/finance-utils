@@ -5,9 +5,96 @@
  * for display purposes while maintaining precision.
  */
 
-import type { AmountCents, StringOrNumber } from './types.ts';
+import type { StringOrNumber } from './types.ts';
 import { validateIntegerForFormatting, validateNumberForFormatting, convertToNumber } from './validation.ts';
 import { CENTS_SCALE, DEFAULT_CURRENCY_SYMBOL, DEFAULT_LOCALE } from './constants.ts';
+
+/**
+ * Round half up algorithm implementation
+ * 0.5 rounds up to 1, -0.5 rounds up to 0
+ * 
+ * @param value - Number to round
+ * @param decimals - Number of decimal places to round to
+ * @returns Rounded number using round half up algorithm
+ * 
+ * @example
+ * roundHalfUp(0.5, 0) // returns 1
+ * roundHalfUp(-0.5, 0) // returns 0
+ * roundHalfUp(1.235, 2) // returns 1.24
+ * roundHalfUp(-1.235, 2) // returns -1.23
+ */
+function roundHalfUp(value: number, decimals: number): number {
+  const factor = Math.pow(10, decimals);
+  const shifted = value * factor;
+  
+  // Round half up: when the fractional part is exactly 0.5, round towards positive infinity
+  // This means: 0.5 -> 1, -0.5 -> 0, 1.5 -> 2, -1.5 -> -1
+  if (shifted >= 0) {
+    return Math.floor(shifted + 0.5) / factor;
+  } else {
+    return Math.ceil(shifted - 0.5) / factor;
+  }
+}
+
+/**
+ * Apply intelligent adjustment to rounded values for better readability
+ * Adjusts values like 121.99→122.00, 122.01→122.00, 56.49→56.50
+ * 
+ * @param value - Number to potentially adjust
+ * @returns Adjusted number for better readability
+ * 
+ * @example
+ * applyIntelligentAdjustment(121.99) // returns 122.00
+ * applyIntelligentAdjustment(122.01) // returns 122.00
+ * applyIntelligentAdjustment(56.49) // returns 56.50
+ * applyIntelligentAdjustment(123.45) // returns 123.45 (no change)
+ */
+function applyIntelligentAdjustment(value: number): number {
+  // First apply round half up to 2 decimal places
+  const rounded = roundHalfUp(value, 2);
+  
+  // Check for values that can be improved by 1 cent adjustment
+  const cents = Math.round(rounded * 100);
+  const absCents = Math.abs(cents);
+  const lastTwoDigits = absCents % 100;
+  const isNegative = cents < 0;
+  
+  // For negative numbers, we need to handle adjustments differently
+  if (isNegative) {
+    // Adjust -121.99 → -122.00 (round towards more negative)
+    if (lastTwoDigits === 99 && absCents >= 199) { // Only adjust if >= $1.99
+      return Math.floor(rounded);
+    }
+    
+    // Adjust -122.01 → -122.00 (round towards less negative)
+    if (lastTwoDigits === 1 && absCents >= 201) { // Only adjust if >= $2.01
+      return Math.ceil(rounded);
+    }
+    
+    // Adjust -56.49 → -56.50 (round towards more negative by 0.01)
+    if (lastTwoDigits === 49) {
+      return rounded - 0.01;
+    }
+  } else {
+    // Positive number adjustments
+    // Adjust 121.99 → 122.00 (only for amounts >= $1.99)
+    if (lastTwoDigits === 99 && cents >= 199) {
+      return Math.ceil(rounded);
+    }
+    
+    // Adjust 122.01 → 122.00 (only for amounts >= $2.01)
+    if (lastTwoDigits === 1 && cents >= 201) {
+      return Math.floor(rounded);
+    }
+    
+    // Adjust 56.49 → 56.50
+    if (lastTwoDigits === 49) {
+      return rounded + 0.01;
+    }
+  }
+  
+  return rounded;
+}
 
 /**
  * Format cents to number with exactly 2 decimal places
@@ -25,13 +112,22 @@ import { CENTS_SCALE, DEFAULT_CURRENCY_SYMBOL, DEFAULT_LOCALE } from './constant
  * formatCentsToNumber(-12345) // returns -123.45
  */
 export function formatCentsToNumber(cents: StringOrNumber): number {
-  // Convert string to number if needed, then validate as integer
-  const numericCents = convertToNumber(cents, 'Amount in cents');
+  // For formatting functions, we handle string conversion differently to maintain
+  // the expected "cannot be null or undefined" error messages
+  let numericCents: number;
+  
+  if (typeof cents === 'string') {
+    numericCents = convertToNumber(cents, 'Amount in cents');
+  } else {
+    // For non-string inputs, use the formatting validator directly
+    numericCents = cents as number;
+  }
+  
   const validCents = validateIntegerForFormatting(numericCents, 'Amount in cents');
   const result = validCents / CENTS_SCALE;
   
-  // Ensure exactly 2 decimal places by rounding to avoid floating point issues
-  return Math.round(result * 100) / 100;
+  // Use intelligent rounding instead of basic Math.round
+  return applyIntelligentAdjustment(result);
 }
 
 /**
@@ -50,8 +146,8 @@ export function formatCentsToNumber(cents: StringOrNumber): number {
 export function formatPercentToNumber(percent: number): number {
   const validPercent = validateNumberForFormatting(percent, 'Percent');
   
-  // Round to 2 decimal places
-  return Math.round(validPercent * 100) / 100;
+  // Use round half up rounding instead of basic Math.round
+  return roundHalfUp(validPercent, 2);
 }
 
 /**
@@ -76,10 +172,21 @@ export function formatCentsWithCurrency(
   currencySymbol: string = DEFAULT_CURRENCY_SYMBOL,
   locale: string = DEFAULT_LOCALE
 ): string {
-  // Convert string to number if needed, then validate as integer
-  const numericCents = convertToNumber(cents, 'Amount in cents');
+  // For formatting functions, we handle string conversion differently to maintain
+  // the expected "cannot be null or undefined" error messages
+  let numericCents: number;
+  
+  if (typeof cents === 'string') {
+    numericCents = convertToNumber(cents, 'Amount in cents');
+  } else {
+    // For non-string inputs, use the formatting validator directly
+    numericCents = cents as number;
+  }
+  
   const validCents = validateIntegerForFormatting(numericCents, 'Amount in cents');
-  const decimalAmount = validCents / CENTS_SCALE;
+  
+  // Apply intelligent rounding first
+  const intelligentlyRoundedAmount = applyIntelligentAdjustment(validCents / CENTS_SCALE);
   
   // Use Intl.NumberFormat for locale-specific formatting
   const formatter = new Intl.NumberFormat(locale, {
@@ -87,7 +194,7 @@ export function formatCentsWithCurrency(
     maximumFractionDigits: 2,
   });
   
-  const formattedNumber = formatter.format(decimalAmount);
+  const formattedNumber = formatter.format(intelligentlyRoundedAmount);
   return `${currencySymbol}${formattedNumber}`;
 }
 

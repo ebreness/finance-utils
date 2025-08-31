@@ -17,7 +17,6 @@ Deno.test("validateAmountCents - valid string inputs", () => {
   assertEquals(validateAmountCents("0"), 0);
   assertEquals(validateAmountCents("100"), 100);
   assertEquals(validateAmountCents("12345"), 12345);
-  assertEquals(validateAmountCents("  1000  "), 1000);
 });
 
 Deno.test("validateAmountCents - invalid string inputs", () => {
@@ -42,25 +41,25 @@ Deno.test("validateAmountCents - invalid string inputs", () => {
 
 Deno.test("validateAmountCents - non-string/number types", () => {
   assertThrows(
-    () => validateAmountCents(null as any),
+    () => validateAmountCents(null as unknown as string),
     Error,
     "Amount must be a string or number, received object"
   );
   
   assertThrows(
-    () => validateAmountCents(undefined as any),
+    () => validateAmountCents(undefined as unknown as string),
     Error,
     "Amount must be a string or number, received undefined"
   );
   
   assertThrows(
-    () => validateAmountCents(true as any),
+    () => validateAmountCents(true as unknown as string),
     Error,
     "Amount must be a string or number, received boolean"
   );
   
   assertThrows(
-    () => validateAmountCents({} as any),
+    () => validateAmountCents({} as unknown as string),
     Error,
     "Amount must be a string or number, received object"
   );
@@ -134,7 +133,6 @@ Deno.test("validateBasisPoints - valid string inputs", () => {
   assertEquals(validateBasisPoints("100"), 100);
   assertEquals(validateBasisPoints("1300"), 1300);
   assertEquals(validateBasisPoints("10000"), 10000);
-  assertEquals(validateBasisPoints("  1300  "), 1300);
 });
 
 Deno.test("validateBasisPoints - invalid string inputs", () => {
@@ -159,19 +157,19 @@ Deno.test("validateBasisPoints - invalid string inputs", () => {
 
 Deno.test("validateBasisPoints - non-string/number types", () => {
   assertThrows(
-    () => validateBasisPoints(null as any),
+    () => validateBasisPoints(null as unknown as string),
     Error,
     "Basis points must be a string or number, received object"
   );
   
   assertThrows(
-    () => validateBasisPoints(undefined as any),
+    () => validateBasisPoints(undefined as unknown as string),
     Error,
     "Basis points must be a string or number, received undefined"
   );
   
   assertThrows(
-    () => validateBasisPoints(false as any),
+    () => validateBasisPoints(false as unknown as string),
     Error,
     "Basis points must be a string or number, received boolean"
   );
@@ -281,7 +279,6 @@ Deno.test("validateNumber - valid string inputs", () => {
   assertEquals(validateNumber("1.5", "Test"), 1.5);
   assertEquals(validateNumber("123.45", "Test"), 123.45);
   assertEquals(validateNumber("0.01", "Test"), 0.01);
-  assertEquals(validateNumber("  123  ", "Test"), 123);
 });
 
 Deno.test("validateNumber - invalid string inputs", () => {
@@ -291,11 +288,11 @@ Deno.test("validateNumber - invalid string inputs", () => {
 });
 
 Deno.test("validateNumber - non-string/number types", () => {
-  assertThrows(() => validateNumber(null as any, "Test"), Error, "Test must be a string or number, received object");
-  assertThrows(() => validateNumber(undefined as any, "Test"), Error, "Test must be a string or number, received undefined");
-  assertThrows(() => validateNumber(true as any, "Test"), Error, "Test must be a string or number, received boolean");
-  assertThrows(() => validateNumber({} as any, "Test"), Error, "Test must be a string or number, received object");
-  assertThrows(() => validateNumber([] as any, "Test"), Error, "Test must be a string or number, received object");
+  assertThrows(() => validateNumber(null as unknown as string, "Test"), Error, "Test must be a string or number, received object");
+  assertThrows(() => validateNumber(undefined as unknown as string, "Test"), Error, "Test must be a string or number, received undefined");
+  assertThrows(() => validateNumber(true as unknown as string, "Test"), Error, "Test must be a string or number, received boolean");
+  assertThrows(() => validateNumber({} as unknown as string, "Test"), Error, "Test must be a string or number, received object");
+  assertThrows(() => validateNumber([] as unknown as string, "Test"), Error, "Test must be a string or number, received object");
 });
 
 Deno.test("validateNumber - NaN and infinity", () => {
@@ -380,11 +377,14 @@ Deno.test("convertToNumber - valid string inputs", () => {
   assertEquals(convertToNumber("1300", "Test"), 1300);
 });
 
-Deno.test("convertToNumber - string inputs with whitespace", () => {
+Deno.test("convertToNumber - string inputs with whitespace should be accepted", () => {
+  // Trimming is now supported - strings with leading/trailing whitespace are valid
   assertEquals(convertToNumber("  123  ", "Test"), 123);
   assertEquals(convertToNumber("\t123.45\n", "Test"), 123.45);
   assertEquals(convertToNumber(" 0 ", "Test"), 0);
   assertEquals(convertToNumber("   1300   ", "Test"), 1300);
+  assertEquals(convertToNumber(" 123.45 ", "Test"), 123.45);
+  assertEquals(convertToNumber("\n\t 42 \t\n", "Test"), 42);
 });
 
 Deno.test("convertToNumber - empty and whitespace-only strings", () => {
@@ -394,6 +394,7 @@ Deno.test("convertToNumber - empty and whitespace-only strings", () => {
     "Test cannot be empty string"
   );
   
+  // Whitespace-only strings should be treated as empty after trimming
   assertThrows(
     () => convertToNumber("   ", "Test"),
     Error,
@@ -449,31 +450,31 @@ Deno.test("convertToNumber - special string cases", () => {
 
 Deno.test("convertToNumber - non-string/number types", () => {
   assertThrows(
-    () => convertToNumber(null as any, "Test"),
+    () => convertToNumber(null as unknown as string, "Test"),
     Error,
     "Test must be a string or number, received object"
   );
   
   assertThrows(
-    () => convertToNumber(undefined as any, "Test"),
+    () => convertToNumber(undefined as unknown as string, "Test"),
     Error,
     "Test must be a string or number, received undefined"
   );
   
   assertThrows(
-    () => convertToNumber(true as any, "Test"),
+    () => convertToNumber(true as unknown as string, "Test"),
     Error,
     "Test must be a string or number, received boolean"
   );
   
   assertThrows(
-    () => convertToNumber({} as any, "Test"),
+    () => convertToNumber({} as unknown as string, "Test"),
     Error,
     "Test must be a string or number, received object"
   );
   
   assertThrows(
-    () => convertToNumber([] as any, "Test"),
+    () => convertToNumber([] as unknown as string, "Test"),
     Error,
     "Test must be a string or number, received object"
   );
@@ -490,7 +491,6 @@ Deno.test("convertToAmountCents - valid string inputs", () => {
   assertEquals(convertToAmountCents("0"), 0);
   assertEquals(convertToAmountCents("100"), 100);
   assertEquals(convertToAmountCents("12345"), 12345);
-  assertEquals(convertToAmountCents("  1000  "), 1000);
 });
 
 Deno.test("convertToAmountCents - invalid string conversion", () => {
@@ -537,10 +537,6 @@ Deno.test("convertToAmountCents - validation failures after conversion", () => {
 Deno.test("convertToAmountCents - edge cases", () => {
   // Large valid values
   assertEquals(convertToAmountCents(MAX_SAFE_CENTS.toString()), MAX_SAFE_CENTS);
-  
-  // Whitespace handling
-  assertEquals(convertToAmountCents("  0  "), 0);
-  assertEquals(convertToAmountCents("\t100\n"), 100);
 });
 
 // Tests for convertToBasisPoints function
@@ -556,7 +552,6 @@ Deno.test("convertToBasisPoints - valid string inputs", () => {
   assertEquals(convertToBasisPoints("100"), 100);
   assertEquals(convertToBasisPoints("1300"), 1300);
   assertEquals(convertToBasisPoints("10000"), 10000);
-  assertEquals(convertToBasisPoints("  1300  "), 1300);
 });
 
 Deno.test("convertToBasisPoints - invalid string conversion", () => {
@@ -603,10 +598,6 @@ Deno.test("convertToBasisPoints - edge cases", () => {
   // Maximum valid value
   assertEquals(convertToBasisPoints("1000000"), 1000000);
   
-  // Whitespace handling
-  assertEquals(convertToBasisPoints("  0  "), 0);
-  assertEquals(convertToBasisPoints("\t1300\n"), 1300);
-  
   // Scientific notation
   assertEquals(convertToBasisPoints("1e3"), 1000);
 });
@@ -640,4 +631,400 @@ Deno.test("convertToBasisPoints - error messages include original input", () => 
     assertEquals((error as Error).message.includes(originalInput), true);
     assertEquals((error as Error).message.includes("Basis points"), true);
   }
+});
+
+// Additional tests for string input validation with whitespace trimming (Requirements 1.1-1.6)
+Deno.test("convertToNumber - whitespace trimming behavior", () => {
+  // Valid strings without whitespace should work
+  assertEquals(convertToNumber("123", "Test"), 123);
+  assertEquals(convertToNumber("0", "Test"), 0);
+  assertEquals(convertToNumber("123.45", "Test"), 123.45);
+  
+  // Strings with whitespace should now be accepted and trimmed
+  assertEquals(convertToNumber(" 123", "Test"), 123);
+  assertEquals(convertToNumber("123 ", "Test"), 123);
+  assertEquals(convertToNumber(" 123 ", "Test"), 123);
+  assertEquals(convertToNumber("\t123.45\n", "Test"), 123.45);
+});
+
+Deno.test("validateAmountCents - string input validation edge cases", () => {
+  // Valid string inputs
+  assertEquals(validateAmountCents("0"), 0);
+  assertEquals(validateAmountCents("1"), 1);
+  assertEquals(validateAmountCents("12345"), 12345);
+  
+  // Valid string inputs with whitespace (now supported with trimming)
+  assertEquals(validateAmountCents(" 100"), 100);
+  assertEquals(validateAmountCents("100 "), 100);
+  assertEquals(validateAmountCents("\t100"), 100);
+  assertEquals(validateAmountCents(" 100 "), 100);
+  assertEquals(validateAmountCents("\n\t 42 \t\n"), 42);
+  
+  // Invalid string inputs that cannot be converted
+  assertThrows(
+    () => validateAmountCents("100abc"),
+    Error,
+    'Amount "100abc" is not a valid number'
+  );
+  
+  assertThrows(
+    () => validateAmountCents("abc100"),
+    Error,
+    'Amount "abc100" is not a valid number'
+  );
+  
+  // String inputs that convert to invalid amounts
+  assertThrows(
+    () => validateAmountCents("-100"),
+    Error,
+    "Amount cannot be negative"
+  );
+  
+  assertThrows(
+    () => validateAmountCents("100.5"),
+    Error,
+    "Amount in cents must be an integer"
+  );
+});
+
+Deno.test("validateBasisPoints - string input validation edge cases", () => {
+  // Valid string inputs
+  assertEquals(validateBasisPoints("0"), 0);
+  assertEquals(validateBasisPoints("1300"), 1300);
+  assertEquals(validateBasisPoints("10000"), 10000);
+  
+  // Valid string inputs with whitespace (now supported with trimming)
+  assertEquals(validateBasisPoints(" 1300"), 1300);
+  assertEquals(validateBasisPoints("1300 "), 1300);
+  assertEquals(validateBasisPoints("\n1300"), 1300);
+  assertEquals(validateBasisPoints(" 1300 "), 1300);
+  assertEquals(validateBasisPoints("\t\n 500 \t\n"), 500);
+  
+  // Invalid string inputs that cannot be converted
+  assertThrows(
+    () => validateBasisPoints("1300bp"),
+    Error,
+    'Basis points "1300bp" is not a valid number'
+  );
+  
+  assertThrows(
+    () => validateBasisPoints("bp1300"),
+    Error,
+    'Basis points "bp1300" is not a valid number'
+  );
+  
+  // String inputs that convert to invalid basis points
+  assertThrows(
+    () => validateBasisPoints("-1300"),
+    Error,
+    "Basis points cannot be negative"
+  );
+  
+  assertThrows(
+    () => validateBasisPoints("1300.5"),
+    Error,
+    "Basis points must be an integer"
+  );
+});
+
+Deno.test("convertToNumber - null and undefined handling", () => {
+  // Null and undefined should throw specific errors
+  assertThrows(
+    () => convertToNumber(null as unknown as string, "Test"),
+    Error,
+    "Test must be a string or number, received object"
+  );
+  
+  assertThrows(
+    () => convertToNumber(undefined as unknown as string, "Test"),
+    Error,
+    "Test must be a string or number, received undefined"
+  );
+});
+
+Deno.test("convertToNumber - infinity handling after string conversion", () => {
+  // String that converts to infinity should be caught
+  assertThrows(
+    () => convertToNumber("Infinity", "Test"),
+    Error,
+    'Test "Infinity" is not a valid number'
+  );
+  
+  assertThrows(
+    () => convertToNumber("-Infinity", "Test"),
+    Error,
+    'Test "-Infinity" is not a valid number'
+  );
+});
+
+Deno.test("string input validation - comprehensive error message testing", () => {
+  // Test that error messages include original string values for debugging
+  const testCases = [
+    { input: "invalid123", expectedInMessage: "invalid123" },
+    { input: "123invalid", expectedInMessage: "123invalid" },
+    { input: "", expectedInMessage: "empty string" },
+  ];
+  
+  testCases.forEach(({ input, expectedInMessage }) => {
+    try {
+      validateAmountCents(input);
+      // Should not reach here
+      assertEquals(true, false, `Expected error for input: ${input}`);
+    } catch (error) {
+      assertEquals(
+        (error as Error).message.includes(expectedInMessage),
+        true,
+        `Error message should include "${expectedInMessage}" for input "${input}". Got: ${(error as Error).message}`
+      );
+    }
+  });
+  
+  // Test that whitespace inputs now work (no longer error cases)
+  assertEquals(validateAmountCents(" 123"), 123);
+  assertEquals(validateAmountCents("123 "), 123);
+});
+
+// Comprehensive tests for whitespace handling (Requirement 1.6)
+Deno.test("convertToNumber - comprehensive whitespace handling", () => {
+  // Leading whitespace
+  assertEquals(convertToNumber(" 123", "Test"), 123);
+  assertEquals(convertToNumber("  123", "Test"), 123);
+  assertEquals(convertToNumber("\t123", "Test"), 123);
+  assertEquals(convertToNumber("\n123", "Test"), 123);
+  assertEquals(convertToNumber("\r123", "Test"), 123);
+  
+  // Trailing whitespace
+  assertEquals(convertToNumber("123 ", "Test"), 123);
+  assertEquals(convertToNumber("123  ", "Test"), 123);
+  assertEquals(convertToNumber("123\t", "Test"), 123);
+  assertEquals(convertToNumber("123\n", "Test"), 123);
+  assertEquals(convertToNumber("123\r", "Test"), 123);
+  
+  // Both leading and trailing whitespace
+  assertEquals(convertToNumber(" 123 ", "Test"), 123);
+  assertEquals(convertToNumber("  123  ", "Test"), 123);
+  assertEquals(convertToNumber("\t123\t", "Test"), 123);
+  assertEquals(convertToNumber("\n123\n", "Test"), 123);
+  assertEquals(convertToNumber("\r123\r", "Test"), 123);
+  
+  // Mixed whitespace types
+  assertEquals(convertToNumber(" \t\n123\r \t", "Test"), 123);
+  assertEquals(convertToNumber("\n\t 123.45 \t\n", "Test"), 123.45);
+  
+  // Decimal numbers with whitespace
+  assertEquals(convertToNumber(" 123.45 ", "Test"), 123.45);
+  assertEquals(convertToNumber("\t0.01\n", "Test"), 0.01);
+  
+  // Negative numbers with whitespace
+  assertEquals(convertToNumber(" -123 ", "Test"), -123);
+  assertEquals(convertToNumber("\t-123.45\n", "Test"), -123.45);
+  
+  // Zero with whitespace
+  assertEquals(convertToNumber(" 0 ", "Test"), 0);
+  assertEquals(convertToNumber("\t0\n", "Test"), 0);
+});
+
+Deno.test("validateAmountCents - comprehensive whitespace handling", () => {
+  // Valid amounts with various whitespace patterns
+  assertEquals(validateAmountCents(" 100"), 100);
+  assertEquals(validateAmountCents("100 "), 100);
+  assertEquals(validateAmountCents(" 100 "), 100);
+  assertEquals(validateAmountCents("\t100\t"), 100);
+  assertEquals(validateAmountCents("\n100\n"), 100);
+  assertEquals(validateAmountCents(" \t\n100\r \t"), 100);
+  
+  // Zero with whitespace
+  assertEquals(validateAmountCents(" 0 "), 0);
+  assertEquals(validateAmountCents("\t0\n"), 0);
+  
+  // Large valid amounts with whitespace
+  assertEquals(validateAmountCents(" 12345 "), 12345);
+  assertEquals(validateAmountCents("\t999999\n"), 999999);
+});
+
+Deno.test("validateBasisPoints - comprehensive whitespace handling", () => {
+  // Valid basis points with various whitespace patterns
+  assertEquals(validateBasisPoints(" 1300"), 1300);
+  assertEquals(validateBasisPoints("1300 "), 1300);
+  assertEquals(validateBasisPoints(" 1300 "), 1300);
+  assertEquals(validateBasisPoints("\t1300\t"), 1300);
+  assertEquals(validateBasisPoints("\n1300\n"), 1300);
+  assertEquals(validateBasisPoints(" \t\n1300\r \t"), 1300);
+  
+  // Zero with whitespace
+  assertEquals(validateBasisPoints(" 0 "), 0);
+  assertEquals(validateBasisPoints("\t0\n"), 0);
+  
+  // Common tax rates with whitespace
+  assertEquals(validateBasisPoints(" 500 "), 500); // 5%
+  assertEquals(validateBasisPoints("\t1000\n"), 1000); // 10%
+  assertEquals(validateBasisPoints(" 10000 "), 10000); // 100%
+});
+
+Deno.test("convertToAmountCents - whitespace handling integration", () => {
+  // Test that the conversion functions properly handle whitespace
+  assertEquals(convertToAmountCents(" 100"), 100);
+  assertEquals(convertToAmountCents("100 "), 100);
+  assertEquals(convertToAmountCents(" 100 "), 100);
+  assertEquals(convertToAmountCents("\t100\n"), 100);
+  
+  // Test that validation still applies after trimming
+  assertThrows(
+    () => convertToAmountCents(" -100 "),
+    Error,
+    "Amount cannot be negative"
+  );
+  
+  assertThrows(
+    () => convertToAmountCents(" 100.5 "),
+    Error,
+    "Amount in cents must be an integer"
+  );
+});
+
+Deno.test("convertToBasisPoints - whitespace handling integration", () => {
+  // Test that the conversion functions properly handle whitespace
+  assertEquals(convertToBasisPoints(" 1300"), 1300);
+  assertEquals(convertToBasisPoints("1300 "), 1300);
+  assertEquals(convertToBasisPoints(" 1300 "), 1300);
+  assertEquals(convertToBasisPoints("\t1300\n"), 1300);
+  
+  // Test that validation still applies after trimming
+  assertThrows(
+    () => convertToBasisPoints(" -1300 "),
+    Error,
+    "Basis points cannot be negative"
+  );
+  
+  assertThrows(
+    () => convertToBasisPoints(" 1300.5 "),
+    Error,
+    "Basis points must be an integer"
+  );
+});
+
+// Test error message consistency for null/undefined vs invalid types (Requirements 1.1, 1.2)
+Deno.test("error message consistency - null/undefined vs invalid types", () => {
+  // Null/undefined should have specific error messages
+  assertThrows(
+    () => convertToNumber(null as unknown as string, "TestField"),
+    Error,
+    "TestField must be a string or number, received object"
+  );
+  
+  assertThrows(
+    () => convertToNumber(undefined as unknown as string, "TestField"),
+    Error,
+    "TestField must be a string or number, received undefined"
+  );
+  
+  // Invalid types should have different error messages
+  assertThrows(
+    () => convertToNumber(true as unknown as string, "TestField"),
+    Error,
+    "TestField must be a string or number, received boolean"
+  );
+  
+  assertThrows(
+    () => convertToNumber({} as unknown as string, "TestField"),
+    Error,
+    "TestField must be a string or number, received object"
+  );
+  
+  assertThrows(
+    () => convertToNumber([] as unknown as string, "TestField"),
+    Error,
+    "TestField must be a string or number, received object"
+  );
+});
+
+// Test that all existing validation logic applies after conversion (Requirement 1.4, 1.5)
+Deno.test("validation logic applies after string conversion", () => {
+  // NaN detection after string conversion
+  assertThrows(
+    () => convertToNumber("NaN", "Test"),
+    Error,
+    'Test "NaN" is not a valid number'
+  );
+  
+  // Infinity detection after string conversion
+  assertThrows(
+    () => convertToNumber("Infinity", "Test"),
+    Error,
+    'Test "Infinity" is not a valid number'
+  );
+  
+  assertThrows(
+    () => convertToNumber("-Infinity", "Test"),
+    Error,
+    'Test "-Infinity" is not a valid number'
+  );
+  
+  // Invalid number strings
+  assertThrows(
+    () => convertToNumber("not-a-number", "Test"),
+    Error,
+    'Test "not-a-number" is not a valid number'
+  );
+  
+  assertThrows(
+    () => convertToNumber("123abc", "Test"),
+    Error,
+    'Test "123abc" is not a valid number'
+  );
+  
+  // Amount-specific validation after conversion
+  assertThrows(
+    () => validateAmountCents(" -100 "),
+    Error,
+    "Amount cannot be negative"
+  );
+  
+  assertThrows(
+    () => validateAmountCents(" 100.5 "),
+    Error,
+    "Amount in cents must be an integer"
+  );
+  
+  // Basis points-specific validation after conversion
+  assertThrows(
+    () => validateBasisPoints(" -1300 "),
+    Error,
+    "Basis points cannot be negative"
+  );
+  
+  assertThrows(
+    () => validateBasisPoints(" 1300.5 "),
+    Error,
+    "Basis points must be an integer"
+  );
+  
+  assertThrows(
+    () => validateBasisPoints(" 1000001 "),
+    Error,
+    "Basis points 1000001 exceeds reasonable maximum of 1000000 (10000%)"
+  );
+});
+
+// Edge cases for whitespace handling
+Deno.test("whitespace handling edge cases", () => {
+  // Unicode whitespace characters
+  assertEquals(convertToNumber("\u0020123\u0020", "Test"), 123); // Regular space
+  assertEquals(convertToNumber("\u00A0123\u00A0", "Test"), 123); // Non-breaking space
+  assertEquals(convertToNumber("\u2000123\u2000", "Test"), 123); // En quad
+  assertEquals(convertToNumber("\u2001123\u2001", "Test"), 123); // Em quad
+  
+  // Mixed whitespace with valid numbers
+  assertEquals(convertToNumber(" \t\r\n123.45\r\n\t ", "Test"), 123.45);
+  
+  // Scientific notation with whitespace
+  assertEquals(convertToNumber(" 1e2 ", "Test"), 100);
+  assertEquals(convertToNumber("\t1.23e2\n", "Test"), 123);
+  
+  // Negative numbers with whitespace
+  assertEquals(convertToNumber(" -123.45 ", "Test"), -123.45);
+  
+  // Leading zeros with whitespace
+  assertEquals(convertToNumber(" 0123 ", "Test"), 123);
+  assertEquals(convertToNumber("\t00.45\n", "Test"), 0.45);
 });

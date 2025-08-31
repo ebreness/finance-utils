@@ -96,11 +96,12 @@ export function calculateTaxFromBase(baseCents: StringOrNumber, taxBasisPoints: 
  * Where rate = taxBasisPoints / BASIS_POINTS_SCALE
  * 
  * EXACT PRECISION ALGORITHM:
- * 1. baseCents = round(totalCents * BASIS_POINTS_SCALE / (BASIS_POINTS_SCALE + taxBasisPoints))
- * 2. taxCents = totalCents - baseCents (calculated as difference to ensure exact total)
+ * 1. Calculate mathematical base: baseCents = round(totalCents * BASIS_POINTS_SCALE / (BASIS_POINTS_SCALE + taxBasisPoints))
+ * 2. Calculate tax from mathematical base: taxCents = calculateTaxFromBase(baseCents, taxBasisPoints) 
+ * 3. Adjust base to ensure exact total: baseCents = totalCents - taxCents
  * 
- * This approach GUARANTEES that base + tax = total exactly, even when mathematical
- * precision would result in fractional cents.
+ * This approach GUARANTEES that base + tax = total exactly by keeping the tax amount constant
+ * and adjusting only the base amount.
  * 
  * @param totalCents - Total amount including taxes in cents - accepts string or number
  * @param taxBasisPoints - Tax rate in basis points (1300 = 13%) - accepts string or number
@@ -138,7 +139,7 @@ export function calculateBaseFromTotal(totalCents: StringOrNumber, taxBasisPoint
     return validTotalCents;
   }
 
-  // Calculate using the core algorithm: base = total * scale / (scale + taxRate)
+  // Calculate initial base using the mathematical formula: base = total * scale / (scale + taxRate)
   const scale = BASIS_POINTS_SCALE;
   const denominator = scale + validTaxBasisPoints;
 
@@ -151,12 +152,19 @@ export function calculateBaseFromTotal(totalCents: StringOrNumber, taxBasisPoint
   }
 
   const numerator = validTotalCents * scale;
+  let baseCents = Math.round(numerator / denominator);
 
-  // Calculate base amount with proper rounding
-  const baseCents = Math.round(numerator / denominator);
+  // Calculate tax from the initial mathematical base - this tax amount stays constant
+  const taxAmountCents = calculateTaxFromBase(baseCents, validTaxBasisPoints);
 
-  // Calculate tax amount as the difference to guarantee exact total
-  const taxCents = validTotalCents - baseCents;
+  // Adjust the base so that base + tax = total exactly
+  // Tax never changes, only base is adjusted
+  baseCents = validTotalCents - taxAmountCents;
+
+  // Verify the result
+  if (baseCents + taxAmountCents !== validTotalCents) {
+    throw new Error(`Base calculation precision error: base ${baseCents} + tax ${taxAmountCents} = ${baseCents + taxAmountCents} ≠ target ${validTotalCents}`);
+  }
 
   // Validate the result
   if (baseCents < 0) {
@@ -165,11 +173,6 @@ export function calculateBaseFromTotal(totalCents: StringOrNumber, taxBasisPoint
 
   if (baseCents > Number.MAX_SAFE_INTEGER) {
     throw new Error(`Base calculation overflow: result ${baseCents} exceeds MAX_SAFE_INTEGER`);
-  }
-
-  // Additional validation: tax amount should be non-negative
-  if (taxCents < 0) {
-    throw new Error(`Tax calculation resulted in negative value: ${taxCents}`);
   }
 
   return baseCents;
@@ -186,9 +189,9 @@ export function calculateBaseFromTotal(totalCents: StringOrNumber, taxBasisPoint
  * 
  * ADJUSTMENT ALGORITHM:
  * 1. Calculate initial base amount using standard division
- * 2. Calculate tax from that base amount
- * 3. If base + tax ≠ total, adjust base by ±1 cent until exact match
- * 4. Prioritize the adjustment that results in the most accurate tax rate
+ * 2. Calculate tax from that base amount (tax amount stays constant)
+ * 3. If base + tax ≠ total, adjust ONLY the base amount to ensure exact total
+ * 4. Tax amount never changes - only base amount is adjusted for precision
  * 
  * @param totalCents - Total amount including taxes in cents - accepts string or number
  * @param taxBasisPoints - Tax rate in basis points (1300 = 13%) - accepts string or number
@@ -244,43 +247,19 @@ export function calculateTaxBreakdown(
     };
   }
 
-  // Calculate initial base amount using existing function
-  let baseAmountCents = calculateBaseFromTotal(validTotalCents, validTaxBasisPoints);
+  // First calculate the mathematical base to determine the tax amount
+  const mathematicalBase = Math.round((validTotalCents * BASIS_POINTS_SCALE) / (BASIS_POINTS_SCALE + validTaxBasisPoints));
 
-  // Calculate tax from the base amount
-  let taxAmountCents = calculateTaxFromBase(baseAmountCents, validTaxBasisPoints);
+  // Calculate tax from the mathematical base - this tax amount stays constant
+  const taxAmountCents = calculateTaxFromBase(mathematicalBase, validTaxBasisPoints);
 
-  // Check if adjustment is needed for exact precision
+  // Calculate the adjusted base that ensures base + tax = total exactly
+  const baseAmountCents = validTotalCents - taxAmountCents;
+
+  // Verify exact precision (this should always pass now)
   const calculatedTotal = baseAmountCents + taxAmountCents;
-
   if (calculatedTotal !== validTotalCents) {
-    // We need to adjust the base amount to ensure exact total
-    const difference = validTotalCents - calculatedTotal;
-
-    // Try adjusting base amount by the difference
-    const adjustedBase = baseAmountCents + difference;
-
-    // Validate the adjusted base is non-negative
-    if (adjustedBase >= 0) {
-      // Calculate tax with adjusted base
-      const adjustedTax = calculateTaxFromBase(adjustedBase, validTaxBasisPoints);
-      const adjustedTotal = adjustedBase + adjustedTax;
-
-      // If this gives us exact total, use it
-      if (adjustedTotal === validTotalCents) {
-        baseAmountCents = adjustedBase;
-        taxAmountCents = adjustedTax;
-      } else {
-        // If direct adjustment doesn't work, use difference method
-        // This guarantees exact total by calculating tax as difference
-        baseAmountCents = adjustedBase;
-        taxAmountCents = validTotalCents - baseAmountCents;
-      }
-    } else {
-      // If adjusted base would be negative, use difference method
-      // Calculate tax as difference to guarantee exact total
-      taxAmountCents = validTotalCents - baseAmountCents;
-    }
+    throw new Error(`Tax breakdown precision error: base ${baseAmountCents} + tax ${taxAmountCents} = ${calculatedTotal} ≠ total ${validTotalCents}`);
   }
 
   // Final validation: ensure exact precision
@@ -313,7 +292,7 @@ export function calculateTaxBreakdown(
  * 3. Later, app needs breakdown using that same base amount
  * 4. This function ensures the breakdown always matches the original total exactly
  * 
- * The function calculates tax from the base, then adjusts if needed to match the expected total.
+ * The function calculates tax from the base (keeping it constant), then adjusts only the base amount if needed to match the expected total.
  * 
  * @param baseCents - Base amount in cents (previously calculated) - accepts string or number
  * @param taxBasisPoints - Tax rate in basis points (1300 = 13%) - accepts string or number
@@ -354,31 +333,25 @@ export function calculateTaxBreakdownFromBase(
   const validTaxBasisPoints = validateBasisPoints(taxBasisPoints);
   const validExpectedTotal = validateAmountCents(expectedTotalCents);
 
-  // Calculate initial tax from base
-  let taxAmountCents = calculateTaxFromBase(validBaseCents, validTaxBasisPoints);
+  // Calculate tax from base - this stays constant
+  const taxAmountCents = calculateTaxFromBase(validBaseCents, validTaxBasisPoints);
   let baseAmountCents = validBaseCents;
 
   // Check if we get exact total
-  let calculatedTotal = baseAmountCents + taxAmountCents;
+  const calculatedTotal = baseAmountCents + taxAmountCents;
 
   if (calculatedTotal !== validExpectedTotal) {
-    // We need to adjust to match the expected total exactly
+    // Adjust ONLY the base amount to match the expected total exactly
+    // This handles cases where users pass base amounts not from calculateBaseFromTotal
     const difference = validExpectedTotal - calculatedTotal;
+    const adjustedBase = validBaseCents + difference;
 
-    // Adjust the base amount by the difference
-    baseAmountCents = validBaseCents + difference;
-
-    // Recalculate tax with adjusted base, or use difference if needed
-    const newTax = calculateTaxFromBase(baseAmountCents, validTaxBasisPoints);
-    const newTotal = baseAmountCents + newTax;
-
-    if (newTotal === validExpectedTotal) {
-      // Perfect match with recalculated tax
-      taxAmountCents = newTax;
-    } else {
-      // Use difference method to guarantee exact total
-      taxAmountCents = validExpectedTotal - baseAmountCents;
+    // Validate the adjusted base is non-negative
+    if (adjustedBase < 0) {
+      throw new Error(`Tax breakdown would result in negative base amount: ${adjustedBase}. Expected total ${validExpectedTotal} is too small for tax amount ${taxAmountCents}.`);
     }
+
+    baseAmountCents = adjustedBase;
   }
 
   // Final validation: ensure exact precision

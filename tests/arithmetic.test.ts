@@ -1,4 +1,3 @@
-/// <reference types="https://deno.land/x/deno@v1.37.0/lib/deno.d.ts" />
 /**
  * Unit tests for safe arithmetic operations
  */

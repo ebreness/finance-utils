@@ -29,8 +29,10 @@ Deno.test('formatCentsToNumber - validation errors', () => {
   assertThrows(() => formatCentsToNumber(123.45), Error, 'must be an integer');
   assertThrows(() => formatCentsToNumber(NaN), Error, 'cannot be NaN');
   assertThrows(() => formatCentsToNumber(Infinity), Error, 'must be finite');
-  assertThrows(() => formatCentsToNumber(null as any), Error, 'must be a string or number, received object');
-  assertThrows(() => formatCentsToNumber(undefined as any), Error, 'must be a string or number, received undefined');
+  // @ts-ignore - Testing invalid input types
+  assertThrows(() => formatCentsToNumber(null), Error, 'cannot be null or undefined');
+  // @ts-ignore - Testing invalid input types
+  assertThrows(() => formatCentsToNumber(undefined), Error, 'cannot be null or undefined');
 });
 
 Deno.test('formatPercentToNumber - basic formatting', () => {
@@ -111,8 +113,10 @@ Deno.test('formatCentsWithCurrency - validation errors', () => {
   assertThrows(() => formatCentsWithCurrency(123.45), Error, 'must be an integer');
   assertThrows(() => formatCentsWithCurrency(NaN), Error, 'cannot be NaN');
   assertThrows(() => formatCentsWithCurrency(Infinity), Error, 'must be finite');
-  assertThrows(() => formatCentsWithCurrency(null as any), Error, 'must be a string or number, received object');
-  assertThrows(() => formatCentsWithCurrency(undefined as any), Error, 'must be a string or number, received undefined');
+  // @ts-ignore - Testing invalid input types
+  assertThrows(() => formatCentsWithCurrency(null), Error, 'cannot be null or undefined');
+  // @ts-ignore - Testing invalid input types
+  assertThrows(() => formatCentsWithCurrency(undefined), Error, 'cannot be null or undefined');
 });
 
 // Import the additional formatting functions
