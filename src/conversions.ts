@@ -4,7 +4,7 @@
 
 import type { AmountCents, BasisPoints, DecimalAmount, StringOrNumber } from './types.ts';
 import { CENTS_SCALE, BASIS_POINTS_SCALE, MAX_SAFE_CENTS } from './constants.ts';
-import { validateAmountCents, validateBasisPoints, validateNumber, convertToNumber } from './validation.ts';
+import { validateAmountCents, validateBasisPoints, convertToNumber } from './validation.ts';
 
 /**
  * Converts a decimal amount to cents (integer)

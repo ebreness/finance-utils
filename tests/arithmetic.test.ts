@@ -1,3 +1,4 @@
+/// <reference types="https://deno.land/x/deno@v1.37.0/lib/deno.d.ts" />
 /**
  * Unit tests for safe arithmetic operations
  */
@@ -23,23 +24,23 @@ Deno.test('safeAdd - input validation errors', () => {
   // Null/undefined inputs
   assertThrows(() => safeAdd(null as any, 100), Error, 'Amount must be a string or number, received object');
   assertThrows(() => safeAdd(100, undefined as any), Error, 'Amount must be a string or number, received undefined');
-  
+
   // Invalid string inputs (strings are now supported, so test invalid ones)
   assertThrows(() => safeAdd('abc' as any, 200), Error, 'Amount "abc" is not a valid number');
   assertThrows(() => safeAdd(100, 'xyz' as any), Error, 'Amount "xyz" is not a valid number');
-  
+
   // NaN inputs
   assertThrows(() => safeAdd(NaN, 100), Error, 'Amount cannot be NaN');
   assertThrows(() => safeAdd(100, NaN), Error, 'Amount cannot be NaN');
-  
+
   // Infinite inputs
   assertThrows(() => safeAdd(Infinity, 100), Error, 'Amount must be finite');
   assertThrows(() => safeAdd(100, Infinity), Error, 'Amount must be finite');
-  
+
   // Non-integer inputs
   assertThrows(() => safeAdd(100.5, 200), Error, 'Amount in cents must be an integer');
   assertThrows(() => safeAdd(100, 200.5), Error, 'Amount in cents must be an integer');
-  
+
   // Negative inputs
   assertThrows(() => safeAdd(-100, 200), Error, 'Amount cannot be negative');
   assertThrows(() => safeAdd(100, -200), Error, 'Amount cannot be negative');
@@ -52,7 +53,7 @@ Deno.test('safeAdd - overflow protection', () => {
     Error,
     'exceeds maximum safe value'
   );
-  
+
   // Test that the function works correctly with maximum safe values
   const result = safeAdd(MAX_SAFE_CENTS - 1000, 1000);
   assertEquals(result, MAX_SAFE_CENTS);
@@ -88,13 +89,13 @@ Deno.test('safeSubtract - negative result protection', () => {
     Error,
     'Subtraction would result in negative amount: 100 - 200 = -100'
   );
-  
+
   assertThrows(
     () => safeSubtract(0, 1),
     Error,
     'Subtraction would result in negative amount: 0 - 1 = -1'
   );
-  
+
   assertThrows(
     () => safeSubtract(12345, 54321),
     Error,
@@ -156,14 +157,14 @@ Deno.test('safeMultiply - overflow protection', () => {
     Error,
     'exceeds maximum safe value'
   );
-  
+
   // Test overflow detection with very large factor that would cause overflow
   assertThrows(
     () => safeMultiply(100000000, 100000000),
     Error,
     'Multiplication overflow'
   );
-  
+
   // Test that the function works correctly with safe values
   const result = safeMultiply(MAX_SAFE_CENTS, 0.5);
   assertEquals(result, Math.round(MAX_SAFE_CENTS * 0.5));
@@ -173,10 +174,10 @@ Deno.test('safeMultiply - edge cases', () => {
   // Very small factors
   assertEquals(safeMultiply(1000000, 0.000001), 1); // 1.0 rounded to 1
   assertEquals(safeMultiply(1000000, 0.0000001), 0); // 0.1 rounded to 0
-  
+
   // Large amounts with small factors
   assertEquals(safeMultiply(MAX_SAFE_CENTS, 0.1), Math.round(MAX_SAFE_CENTS * 0.1));
-  
+
   // Precision edge cases
   assertEquals(safeMultiply(333333, 0.000003), 1); // 0.999999 rounds to 1
 });
@@ -184,11 +185,11 @@ Deno.test('safeMultiply - edge cases', () => {
 Deno.test('checkSafeOperation integration - addition', () => {
   // Test that checkSafeOperation is properly integrated in safeAdd
   const largeValue = Math.floor(Number.MAX_SAFE_INTEGER / 2);
-  
+
   // This should work fine
   const result = safeAdd(1000, 2000);
   assertEquals(result, 3000);
-  
+
   // Test with values that would trigger validation errors
   assertThrows(
     () => safeAdd(Number.MAX_SAFE_INTEGER - 1, 2),
@@ -201,7 +202,7 @@ Deno.test('checkSafeOperation integration - subtraction', () => {
   // Test that checkSafeOperation is properly integrated in safeSubtract
   const result = safeSubtract(3000, 1000);
   assertEquals(result, 2000);
-  
+
   // Test with values that would trigger validation errors
   assertThrows(
     () => safeSubtract(Number.MAX_SAFE_INTEGER, 1),
@@ -212,13 +213,13 @@ Deno.test('checkSafeOperation integration - subtraction', () => {
 
 Deno.test('comprehensive error handling - invalid operations', () => {
   // Test various error conditions are properly handled
-  
+
   // Division by zero equivalent (factor of 0 is allowed)
   assertEquals(safeMultiply(1000, 0), 0);
-  
+
   // Very small factors
   assertEquals(safeMultiply(1000000, 0.0000001), 0);
-  
+
   // Boundary conditions
   assertEquals(safeAdd(0, 0), 0);
   assertEquals(safeSubtract(1000, 1000), 0);
@@ -227,20 +228,20 @@ Deno.test('comprehensive error handling - invalid operations', () => {
 
 Deno.test('error message quality', () => {
   // Test that error messages are descriptive and helpful
-  
+
   try {
     safeAdd(null as any, 100);
   } catch (error) {
     assertEquals((error as Error).message.includes('string or number'), true);
   }
-  
+
   try {
     safeSubtract(100, 200);
   } catch (error) {
     assertEquals((error as Error).message.includes('negative amount'), true);
     assertEquals((error as Error).message.includes('100 - 200 = -100'), true);
   }
-  
+
   try {
     safeMultiply(100, -1);
   } catch (error) {

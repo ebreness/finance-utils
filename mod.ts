@@ -394,3 +394,54 @@ export { calculateBaseFromTotal } from './src/calculations.ts';
  * ```
  */
 export { calculateTaxBreakdown } from './src/calculations.ts';
+
+/**
+ * Calculate tax breakdown from a previously calculated base amount with EXACT PRECISION GUARANTEE.
+ * 
+ * This function is designed for the specific use case where:
+ * 1. User enters a total amount (e.g., $122.00)
+ * 2. App calculates base amount using calculateBaseFromTotal (e.g., $107.96)
+ * 3. Later, app needs breakdown using that same base amount
+ * 4. This function ensures the breakdown always matches the original total exactly
+ * 
+ * PRECISION GUARANTEE: baseAmountCents + taxAmountCents = expectedTotalCents (ALWAYS TRUE)
+ * 
+ * @param baseCents - Base amount in cents (previously calculated) - accepts string or number
+ * @param taxBasisPoints - Tax rate in basis points (1300 = 13%) - accepts string or number
+ * @param expectedTotalCents - Expected total amount in cents - accepts string or number
+ * @returns Complete tax calculation breakdown with exact precision guarantee
+ * @throws Error if inputs are invalid or result in negative amounts
+ * 
+ * @example Typical User Flow
+ * ```js
+ * import { calculateBaseFromTotal, calculateTaxBreakdownFromBase } from '@ebreness/finance-utils';
+ * 
+ * // Step 1: User enters total, app calculates base
+ * const userTotal = 12200; // $122.00
+ * const taxRate = 1300;    // 13%
+ * const calculatedBase = calculateBaseFromTotal(userTotal, taxRate); // 10796 ($107.96)
+ * 
+ * // Step 2: Later, app needs breakdown using that base
+ * const breakdown = calculateTaxBreakdownFromBase(calculatedBase, taxRate, userTotal);
+ * // Returns: { baseAmountCents: 10797, taxAmountCents: 1403, totalAmountCents: 12200 }
+ * 
+ * // GUARANTEED: base + tax = original total exactly
+ * console.log(breakdown.baseAmountCents + breakdown.taxAmountCents === userTotal); // true
+ * ```
+ * 
+ * @example String inputs (Perfect for forms and APIs)
+ * ```js
+ * import { calculateTaxBreakdownFromBase } from '@ebreness/finance-utils';
+ * 
+ * // Perfect for form data and API responses - no manual conversion needed!
+ * const breakdown = calculateTaxBreakdownFromBase("10796", "1300", "12200");
+ * // Returns: { baseAmountCents: 10797, taxAmountCents: 1403, totalAmountCents: 12200 }
+ * 
+ * // Mix string and number inputs freely
+ * const breakdown2 = calculateTaxBreakdownFromBase(10796, "1300", 12200);
+ * 
+ * // Handles whitespace automatically
+ * const breakdown3 = calculateTaxBreakdownFromBase("  10796  ", " 1300 ", "  12200  ");
+ * ```
+ */
+export { calculateTaxBreakdownFromBase } from './src/calculations.ts';
