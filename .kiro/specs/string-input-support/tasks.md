@@ -9,9 +9,12 @@
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 4.1, 4.2, 4.3, 4.4_
 
 - [x] 2. Update type definitions for string | number support
-  - Add StringOrNumber union type to types.ts
-  - Update function signatures in calculations.ts to accept StringOrNumber parameters
-  - Update function signatures in conversions.ts to accept StringOrNumber parameters
+  - Add StringOrNumber union type to types.ts ✓ (completed)
+  - Update function signatures in calculations.ts to accept StringOrNumber parameters ✓ (completed)
+  - Update function signatures in conversions.ts to accept StringOrNumber parameters ✓ (completed)
+  - Update AmountCents type to be StringOrNumber for better TypeScript experience
+  - Update BasisPoints type to be StringOrNumber for consistency
+  - Update function signatures in format.ts to accept StringOrNumber parameters
   - Ensure backward compatibility by maintaining existing number-only behavior
   - _Requirements: 5.1, 5.2, 5.3_
 
@@ -55,7 +58,14 @@
   - Add tests to existing test suites to verify backward compatibility
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [x] 8. Update module exports and documentation
+- [x] 8. Update formatting functions to accept string inputs
+  - Modify formatCentsWithCurrency to accept StringOrNumber for cents parameter
+  - Modify formatCentsToNumber to accept StringOrNumber for cents parameter
+  - Update function implementations to use enhanced validation functions
+  - Write unit tests for string inputs to formatting functions
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 5.1, 5.2_
+
+- [x] 9. Update module exports and documentation
   - Update mod.ts exports to reflect new StringOrNumber parameter types
   - Add JSDoc documentation examples showing string input usage
   - Update existing JSDoc to mention string input support

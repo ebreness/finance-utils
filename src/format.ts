@@ -5,25 +5,29 @@
  * for display purposes while maintaining precision.
  */
 
-import type { AmountCents } from './types.ts';
-import { validateIntegerForFormatting, validateNumberForFormatting } from './validation.ts';
+import type { AmountCents, StringOrNumber } from './types.ts';
+import { validateIntegerForFormatting, validateNumberForFormatting, convertToNumber } from './validation.ts';
 import { CENTS_SCALE, DEFAULT_CURRENCY_SYMBOL, DEFAULT_LOCALE } from './constants.ts';
 
 /**
  * Format cents to number with exactly 2 decimal places
  * 
- * @param cents - Amount in cents (integer, can be negative)
+ * @param cents - Amount in cents (integer, can be negative) - accepts string or number
  * @returns Number with exactly 2 decimal places
  * @throws Error if cents is not a valid integer
  * 
  * @example
  * formatCentsToNumber(12345) // returns 123.45
+ * formatCentsToNumber("12345") // returns 123.45
  * formatCentsToNumber(100) // returns 1.00
+ * formatCentsToNumber("100") // returns 1.00
  * formatCentsToNumber(0) // returns 0.00
  * formatCentsToNumber(-12345) // returns -123.45
  */
-export function formatCentsToNumber(cents: AmountCents): number {
-  const validCents = validateIntegerForFormatting(cents, 'Amount in cents');
+export function formatCentsToNumber(cents: StringOrNumber): number {
+  // Convert string to number if needed, then validate as integer
+  const numericCents = convertToNumber(cents, 'Amount in cents');
+  const validCents = validateIntegerForFormatting(numericCents, 'Amount in cents');
   const result = validCents / CENTS_SCALE;
   
   // Ensure exactly 2 decimal places by rounding to avoid floating point issues
@@ -53,7 +57,7 @@ export function formatPercentToNumber(percent: number): number {
 /**
  * Format cents with currency symbol using locale-specific formatting
  * 
- * @param cents - Amount in cents (integer, can be negative)
+ * @param cents - Amount in cents (integer, can be negative) - accepts string or number
  * @param currencySymbol - Currency symbol to use (default: '$')
  * @param locale - Locale for number formatting (default: 'en-US')
  * @returns Formatted currency string
@@ -61,16 +65,20 @@ export function formatPercentToNumber(percent: number): number {
  * 
  * @example
  * formatCentsWithCurrency(12345) // returns '$123.45'
+ * formatCentsWithCurrency("12345") // returns '$123.45'
  * formatCentsWithCurrency(12345, '€', 'de-DE') // returns '€123,45'
- * formatCentsWithCurrency(1000000, '¥', 'ja-JP') // returns '¥10,000.00'
+ * formatCentsWithCurrency("1000000", '¥', 'ja-JP') // returns '¥10,000.00'
  * formatCentsWithCurrency(-12345) // returns '$-123.45'
+ * formatCentsWithCurrency("  12345  ") // returns '$123.45' (handles whitespace)
  */
 export function formatCentsWithCurrency(
-  cents: AmountCents,
+  cents: StringOrNumber,
   currencySymbol: string = DEFAULT_CURRENCY_SYMBOL,
   locale: string = DEFAULT_LOCALE
 ): string {
-  const validCents = validateIntegerForFormatting(cents, 'Amount in cents');
+  // Convert string to number if needed, then validate as integer
+  const numericCents = convertToNumber(cents, 'Amount in cents');
+  const validCents = validateIntegerForFormatting(numericCents, 'Amount in cents');
   const decimalAmount = validCents / CENTS_SCALE;
   
   // Use Intl.NumberFormat for locale-specific formatting

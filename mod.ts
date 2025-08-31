@@ -41,7 +41,8 @@
  *   calculateTaxBreakdown, 
  *   decimalToCents, 
  *   calculateBaseFromTotal,
- *   percent100ToBasisPoints 
+ *   percent100ToBasisPoints,
+ *   formatCentsWithCurrency 
  * } from '@ebreness/finance-utils';
  * 
  * // All functions accept string inputs - perfect for form data and API responses
@@ -54,6 +55,10 @@
  * 
  * // Mix string and number inputs as needed
  * const baseCents = calculateBaseFromTotal("113000", 1300); // 100000
+ * 
+ * // Format with string inputs - no manual conversion needed!
+ * const formatted = formatCentsWithCurrency("12345"); // "$123.45"
+ * const formattedWithWhitespace = formatCentsWithCurrency("  12345  "); // "$123.45"
  * 
  * // Handles whitespace automatically
  * const cleanedCents = decimalToCents("  123.45  "); // 12345
@@ -79,7 +84,8 @@
  *   decimalToCents, 
  *   centsToDecimal,
  *   percent100ToBasisPoints,
- *   formatPercentWithSymbol 
+ *   formatPercentWithSymbol,
+ *   formatCentsWithCurrency 
  * } from '@ebreness/finance-utils';
  * 
  * // Convert between decimal and cents (string inputs supported)
@@ -91,6 +97,40 @@
  * 
  * // Format percentage for display
  * const formatted = formatPercentWithSymbol(1300); // "13.00%"
+ * 
+ * // Format currency with string inputs (no conversion needed!)
+ * const currencyFormatted = formatCentsWithCurrency("12345"); // "$123.45"
+ * ```
+ * 
+ * @example Real-World Usage (Form Data & APIs)
+ * ```js
+ * import { 
+ *   calculateTaxFromBase, 
+ *   formatCentsWithCurrency 
+ * } from '@ebreness/finance-utils';
+ * 
+ * // Example: Processing form data or API responses
+ * function processOrderData(params) {
+ *   // No manual string conversion needed - functions accept strings directly!
+ *   const taxes = calculateTaxFromBase(params.contactCostInCents, params.taxesInBasisPoints);
+ *   
+ *   return {
+ *     formattedCatalogCost: formatCentsWithCurrency(params.catalogCostInCents),
+ *     formattedContactCost: formatCentsWithCurrency(params.contactCostInCents),
+ *     formattedTaxesAmount: formatCentsWithCurrency(taxes),
+ *     formattedTotal: formatCentsWithCurrency(
+ *       Number(params.contactCostInCents) + taxes
+ *     ),
+ *   };
+ * }
+ * 
+ * // Usage with string data from forms/APIs
+ * const result = processOrderData({
+ *   catalogCostInCents: "90000",      // $900.00
+ *   contactCostInCents: "100000",     // $1,000.00
+ *   taxesInBasisPoints: "1300"        // 13%
+ * });
+ * // Returns formatted currency strings ready for display
  * ```
  */
 
@@ -170,15 +210,15 @@ export {
  * calculateTaxFromBase(2831858, 1300); // returns 368142 (13% of $28,318.58 = $3,681.42)
  * ```
  * 
- * @example String inputs
+ * @example String inputs (Perfect for forms and APIs)
  * ```js
  * import { calculateTaxFromBase } from '@ebreness/finance-utils';
  * 
- * // Perfect for form data and API responses
+ * // Perfect for form data and API responses - no manual conversion needed!
  * calculateTaxFromBase("100000", "1300"); // returns 13000
  * calculateTaxFromBase("2831858", "1300"); // returns 368142
  * 
- * // Mix string and number inputs
+ * // Mix string and number inputs freely
  * calculateTaxFromBase("100000", 1300); // returns 13000
  * 
  * // Handles whitespace automatically
@@ -206,15 +246,15 @@ export { calculateTaxFromBase } from './src/calculations.ts';
  * calculateBaseFromTotal(113000, 1300); // returns 100000 (base: $1,000.00, tax: $130.00)
  * ```
  * 
- * @example String inputs
+ * @example String inputs (Perfect for forms and APIs)
  * ```js
  * import { calculateBaseFromTotal } from '@ebreness/finance-utils';
  * 
- * // Perfect for form data and API responses
+ * // Perfect for form data and API responses - no manual conversion needed!
  * calculateBaseFromTotal("3200000", "1300"); // returns 2831858
  * calculateBaseFromTotal("113000", "1300"); // returns 100000
  * 
- * // Mix string and number inputs
+ * // Mix string and number inputs freely
  * calculateBaseFromTotal("3200000", 1300); // returns 2831858
  * 
  * // Handles whitespace automatically
@@ -245,15 +285,15 @@ export { calculateBaseFromTotal } from './src/calculations.ts';
  * // returns { baseAmountCents: 100000, taxAmountCents: 13000, totalAmountCents: 113000 }
  * ```
  * 
- * @example String inputs
+ * @example String inputs (Perfect for forms and APIs)
  * ```js
  * import { calculateTaxBreakdown } from '@ebreness/finance-utils';
  * 
- * // Perfect for form data and API responses
+ * // Perfect for form data and API responses - no manual conversion needed!
  * calculateTaxBreakdown("3200000", "1300");
  * // returns { baseAmountCents: 2831858, taxAmountCents: 368142, totalAmountCents: 3200000 }
  * 
- * // Mix string and number inputs
+ * // Mix string and number inputs freely
  * calculateTaxBreakdown("113000", 1300);
  * // returns { baseAmountCents: 100000, taxAmountCents: 13000, totalAmountCents: 113000 }
  * 
