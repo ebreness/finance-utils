@@ -47,6 +47,12 @@ interface TaxCalculationResult {
   totalAmountCents: AmountCents;
 }
 
+// Enhanced calculation result with discount information
+interface TaxCalculationWithDiscountResult extends TaxCalculationResult {
+  discountedAmountCents: AmountCents;
+  discountBasisPoints: BasisPoints;
+}
+
 // Formatting options
 interface FormatOptions {
   currencySymbol?: string;
@@ -74,6 +80,13 @@ function calculateTaxBreakdown(
   totalCents: AmountCents,
   taxBasisPoints: BasisPoints
 ): TaxCalculationResult;
+
+// Complete tax calculation with discount breakdown
+function calculateTaxBreakdown(
+  totalCents: AmountCents,
+  taxBasisPoints: BasisPoints,
+  discountBasisPoints?: BasisPoints
+): TaxCalculationResult | TaxCalculationWithDiscountResult;
 ```
 
 ### Conversion Functions
@@ -153,6 +166,8 @@ const DEFAULT_CURRENCY_SYMBOL = '$'; // Default currency symbol
 
 The main tax calculation algorithm follows this approach with guaranteed exact totals:
 
+#### Standard Tax Calculation
+
 ```typescript
 // For calculating base from total with tax:
 // base = total / (1 + rate)
@@ -176,14 +191,91 @@ function calculateBaseFromTotal(totalCents: AmountCents, taxBasisPoints: BasisPo
   return baseCents;
 }
 
-function calculateTaxBreakdown(totalCents: AmountCents, taxBasisPoints: BasisPoints): TaxCalculationResult {
-  const baseCents = calculateBaseFromTotal(totalCents, taxBasisPoints);
-  const taxCents = totalCents - baseCents;
+function calculateTaxBreakdown(
+  totalCents: AmountCents, 
+  taxBasisPoints: BasisPoints,
+  discountBasisPoints?: BasisPoints
+): TaxCalculationResult | TaxCalculationWithDiscountResult {
+  
+  if (discountBasisPoints && discountBasisPoints > 0) {
+    // Calculate with discount: discount is applied to original base, then tax on discounted amount
+    
+    // First, get the original base amount (before discount)
+    const originalBaseCents = calculateBaseFromTotal(totalCents, taxBasisPoints);
+    
+    // Calculate discount amount from original base
+    const discountCents = Math.round((originalBaseCents * discountBasisPoints) / BASIS_POINTS_SCALE);
+    
+    // Calculate discounted base amount
+    const discountedBaseCents = originalBaseCents - discountCents;
+    
+    // Calculate tax on the discounted amount
+    const taxCents = Math.round((discountedBaseCents * taxBasisPoints) / BASIS_POINTS_SCALE);
+    
+    // Adjust discounted base to ensure exact total: discountedBase + tax = total
+    const adjustedDiscountedBase = totalCents - taxCents;
+    
+    return {
+      baseAmountCents: adjustedDiscountedBase,
+      taxAmountCents: taxCents,
+      totalAmountCents: totalCents,
+      discountedAmountCents: discountCents,
+      discountBasisPoints: discountBasisPoints
+    };
+  } else {
+    // Standard calculation without discount
+    const baseCents = calculateBaseFromTotal(totalCents, taxBasisPoints);
+    const taxCents = totalCents - baseCents;
+    
+    return {
+      baseAmountCents: baseCents,
+      taxAmountCents: taxCents,
+      totalAmountCents: totalCents // Always equals baseCents + taxCents
+    };
+  }
+}
+```
+
+#### Tax Calculation with Discount
+
+When discount is applied, the calculation follows this sequence to maintain exact precision:
+
+```typescript
+// For calculating tax breakdown with discount:
+// 1. Calculate original base amount from total (ignoring discount initially)
+// 2. Apply discount to original base amount
+// 3. Calculate tax on discounted amount
+// 4. Adjust final amounts to ensure exact total
+
+function calculateTaxBreakdownWithDiscount(
+  totalCents: AmountCents, 
+  taxBasisPoints: BasisPoints,
+  discountBasisPoints: BasisPoints
+): TaxCalculationWithDiscountResult {
+  
+  // Step 1: Calculate what the base would be without discount
+  const originalBaseCents = Math.round(totalCents * BASIS_POINTS_SCALE / (BASIS_POINTS_SCALE + taxBasisPoints));
+  
+  // Step 2: Calculate discount amount from original base
+  const discountCents = Math.round((originalBaseCents * discountBasisPoints) / BASIS_POINTS_SCALE);
+  
+  // Step 3: Calculate discounted base
+  const discountedBaseCents = originalBaseCents - discountCents;
+  
+  // Step 4: Calculate tax on discounted amount
+  const taxCents = Math.round((discountedBaseCents * taxBasisPoints) / BASIS_POINTS_SCALE);
+  
+  // Step 5: Ensure exact total by adjusting the discounted base
+  const finalDiscountedBase = totalCents - taxCents;
+  
+  // This guarantees: finalDiscountedBase + taxCents = totalCents exactly
   
   return {
-    baseAmountCents: baseCents,
+    baseAmountCents: finalDiscountedBase,
     taxAmountCents: taxCents,
-    totalAmountCents: totalCents // Always equals baseCents + taxCents
+    totalAmountCents: totalCents,
+    discountedAmountCents: discountCents,
+    discountBasisPoints: discountBasisPoints
   };
 }
 ```

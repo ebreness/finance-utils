@@ -171,6 +171,7 @@ export type {
   BasisPoints,
   DecimalAmount,
   TaxCalculationResult,
+  TaxCalculationWithDiscountResult,
   FormatOptions,
   StringOrNumber,
 } from './src/types.ts';

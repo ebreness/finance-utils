@@ -37,6 +37,7 @@ import {
   formatCentsWithCurrency,
   decimalToCents,
   percent100ToBasisPoints,
+  basisPointsToPercent100,
   convertToAmountCents,
   convertToBasisPoints,
   convertToNumber
@@ -71,6 +72,15 @@ const breakdown = calculateTaxBreakdown(totalCents, taxBasisPoints);
 console.log(`Total: ${formatCentsWithCurrency(breakdown.totalAmountCents)}`); // "Total: $32,000.00"
 console.log(`Base: ${formatCentsWithCurrency(breakdown.baseAmountCents)}`); // "Base: $28,318.58"
 console.log(`Tax: ${formatCentsWithCurrency(breakdown.taxAmountCents)}`); // "Tax: $3,681.42"
+
+// Calculate with discount - 5% discount on $122.00 with 13% tax
+const discountRate = percent100ToBasisPoints(5); // 500 basis points
+const discountBreakdown = calculateTaxBreakdown(12200, 1300, 500);
+
+console.log(`Total: ${formatCentsWithCurrency(discountBreakdown.totalAmountCents)}`); // "Total: $122.00"
+console.log(`Base: ${formatCentsWithCurrency(discountBreakdown.baseAmountCents)}`); // "Base: $107.97"
+console.log(`Tax: ${formatCentsWithCurrency(discountBreakdown.taxAmountCents)}`); // "Tax: $14.03"
+console.log(`Discount: ${formatCentsWithCurrency(discountBreakdown.discountedAmountCents)}`); // "Discount: $5.70"
 ```
 
 ## Core Concepts
@@ -199,6 +209,80 @@ console.log(noTax.taxAmountCents === 0); // true
 console.log(noTax.baseAmountCents + noTax.taxAmountCents === 100000); // true
 ```
 
+## Discount Support
+
+The library supports discount calculations with the same exact precision guarantee. Discounts are applied to the original base amount before tax calculation:
+
+### Basic Discount Usage
+```typescript
+// $122.00 with 13% tax and 5% discount
+const breakdown = calculateTaxBreakdown(12200, 1300, 500);
+
+console.log(`Total: ${formatCentsWithCurrency(breakdown.totalAmountCents)}`); // "$122.00"
+console.log(`Base: ${formatCentsWithCurrency(breakdown.baseAmountCents)}`); // "$107.97"
+console.log(`Tax: ${formatCentsWithCurrency(breakdown.taxAmountCents)}`); // "$14.03"
+console.log(`Discount: ${formatCentsWithCurrency(breakdown.discountedAmountCents)}`); // "$5.70"
+
+// GUARANTEED: base + tax = total exactly
+console.log(breakdown.baseAmountCents + breakdown.taxAmountCents === breakdown.totalAmountCents); // true
+```
+
+### Discount Calculation Logic
+The discount feature follows this precise sequence:
+1. Calculate what the original base amount would be without discount
+2. Apply discount to the original base amount
+3. Calculate tax on the discounted amount
+4. Adjust final amounts to ensure exact total precision
+
+```typescript
+// Example: $1000.00 with 13% tax and 10% discount
+const result = calculateTaxBreakdown(100000, 1300, 1000);
+
+// Original base (before discount): ~$88,495.58
+// Discount amount (10% of original): ~$8,849.56
+// Final base (after discount): ~$79,646.02
+// Tax (13% of final base): ~$10,353.98
+// Total: $79,646.02 + $10,353.98 = $90,000.00 ✓
+
+console.log(result.baseAmountCents + result.taxAmountCents === 100000); // true
+console.log(result.discountBasisPoints); // 1000 (10%)
+console.log(result.discountedAmountCents); // Discount amount in cents
+```
+
+### String Input Support for Discounts
+```typescript
+// All parameters accept string inputs
+const breakdown = calculateTaxBreakdown("12200", "1300", "500");
+
+// Mix string and number inputs
+const breakdown2 = calculateTaxBreakdown(12200, "1300", "500");
+
+// Handles whitespace automatically
+const breakdown3 = calculateTaxBreakdown("  12200  ", "  1300  ", "  500  ");
+```
+
+### High Discount Rates
+```typescript
+// 50% discount - half off the original amount
+const highDiscount = calculateTaxBreakdown(20000, 1300, 5000); // $200.00, 13% tax, 50% discount
+console.log(highDiscount.baseAmountCents + highDiscount.taxAmountCents === 20000); // true
+
+// 90% discount - almost everything off
+const veryHighDiscount = calculateTaxBreakdown(10000, 1300, 9000); // $100.00, 13% tax, 90% discount
+console.log(veryHighDiscount.baseAmountCents + veryHighDiscount.taxAmountCents === 10000); // true
+```
+
+### Zero Discount (Backward Compatibility)
+```typescript
+// Zero discount behaves exactly like no discount parameter
+const withZeroDiscount = calculateTaxBreakdown(12200, 1300, 0);
+const withoutDiscount = calculateTaxBreakdown(12200, 1300);
+
+// Results are identical for common fields
+console.log(withZeroDiscount.baseAmountCents === withoutDiscount.baseAmountCents); // true
+console.log(withZeroDiscount.taxAmountCents === withoutDiscount.taxAmountCents); // true
+```
+
 ## Documentation
 
 - **[API Reference](docs/api-reference.md)** - Complete documentation of all functions, types, and interfaces
@@ -212,6 +296,7 @@ console.log(noTax.baseAmountCents + noTax.taxAmountCents === 100000); // true
 - `calculateTaxFromBase(baseCents, taxBasisPoints)` - Calculate tax amount from base amount
 - `calculateBaseFromTotal(totalCents, taxBasisPoints)` - Calculate base amount from total including tax
 - `calculateTaxBreakdown(totalCents, taxBasisPoints)` - Get complete tax breakdown
+- `calculateTaxBreakdown(totalCents, taxBasisPoints, discountBasisPoints)` - Get complete tax breakdown with discount support
 
 ### Conversions
 

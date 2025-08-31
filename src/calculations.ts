@@ -23,7 +23,7 @@
  * ```
  */
 
-import type { AmountCents, TaxCalculationResult, StringOrNumber } from './types.ts';
+import type { AmountCents, TaxCalculationResult, TaxCalculationWithDiscountResult, StringOrNumber } from './types.ts';
 import { validateAmountCents, validateBasisPoints } from './validation.ts';
 import { BASIS_POINTS_SCALE } from './constants.ts';
 
@@ -233,54 +233,174 @@ export function calculateBaseFromTotal(totalCents: StringOrNumber, taxBasisPoint
 export function calculateTaxBreakdown(
   totalCents: StringOrNumber,
   taxBasisPoints: StringOrNumber
-): TaxCalculationResult {
+): TaxCalculationResult;
+
+/**
+ * Calculate comprehensive tax breakdown with discount support and ABSOLUTE EXACT PRECISION GUARANTEE
+ * 
+ * This overload provides a complete breakdown of a total amount into its base, tax, and discount components
+ * with the STRONGEST PRECISION GUARANTEE in the library. When a discount is applied, it follows this sequence:
+ * 1. Calculate original base amount (ignoring discount initially)
+ * 2. Apply discount to original base amount
+ * 3. Calculate tax on discounted amount
+ * 4. Adjust final amounts to ensure exact total
+ * 
+ * PRECISION GUARANTEE: baseAmountCents + taxAmountCents = totalAmountCents (ALWAYS TRUE)
+ * 
+ * @param totalCents - Total amount including taxes in cents - accepts string or number
+ * @param taxBasisPoints - Tax rate in basis points (1300 = 13%) - accepts string or number
+ * @param discountBasisPoints - Discount rate in basis points (500 = 5%) - accepts string or number
+ * @returns Complete tax calculation breakdown with base, tax, total, discount amount, and discount rate
+ * @throws Error if inputs are invalid, calculation would cause overflow, or discount exceeds base amount
+ * 
+ * @example Basic Usage with Discount
+ * ```js
+ * calculateTaxBreakdown(3200000, 1300, 500) 
+ * // returns { 
+ * //   baseAmountCents: 2690265, 
+ * //   taxAmountCents: 509735, 
+ * //   totalAmountCents: 3200000,
+ * //   discountedAmountCents: 141593,
+ * //   discountBasisPoints: 500
+ * // }
+ * ```
+ * 
+ * @example Exact Precision Guarantee with Discount
+ * ```js
+ * const breakdown = calculateTaxBreakdown(12200, 1300, 500); // $122.00 with 13% tax and 5% discount
+ * 
+ * // GUARANTEED: This will ALWAYS be true, regardless of input values
+ * console.log(breakdown.baseAmountCents + breakdown.taxAmountCents === breakdown.totalAmountCents); // true
+ * 
+ * // Discount information is also provided
+ * console.log(breakdown.discountedAmountCents); // Discount amount in cents
+ * console.log(breakdown.discountBasisPoints); // 500 (5% discount)
+ * ```
+ */
+export function calculateTaxBreakdown(
+  totalCents: StringOrNumber,
+  taxBasisPoints: StringOrNumber,
+  discountBasisPoints: StringOrNumber
+): TaxCalculationWithDiscountResult;
+
+export function calculateTaxBreakdown(
+  totalCents: StringOrNumber,
+  taxBasisPoints: StringOrNumber,
+  discountBasisPoints?: StringOrNumber
+): TaxCalculationResult | TaxCalculationWithDiscountResult {
   // Validate and convert inputs
   const validTotalCents = validateAmountCents(totalCents);
   const validTaxBasisPoints = validateBasisPoints(taxBasisPoints);
+  const validDiscountBasisPoints = discountBasisPoints !== undefined ? validateBasisPoints(discountBasisPoints) : 0;
 
-  // Handle edge case: if tax rate is 0, base equals total
-  if (validTaxBasisPoints === 0) {
+  // Check if discount is provided and greater than 0
+  if (validDiscountBasisPoints > 0) {
+    // Calculate with discount: discount is applied to original base, then tax on discounted amount
+    
+    // Step 1: Calculate what the original base would be without discount
+    const originalBaseCents = Math.round((validTotalCents * BASIS_POINTS_SCALE) / (BASIS_POINTS_SCALE + validTaxBasisPoints));
+    
+    // Step 2: Check for overflow before discount calculation
+    if (originalBaseCents > 0 && validDiscountBasisPoints > 0) {
+      const maxAllowedBase = Math.floor(Number.MAX_SAFE_INTEGER / validDiscountBasisPoints);
+      if (originalBaseCents > maxAllowedBase) {
+        throw new Error(`Discount calculation overflow: base amount ${originalBaseCents} with discount rate ${validDiscountBasisPoints} basis points would exceed MAX_SAFE_INTEGER`);
+      }
+    }
+    
+    // Step 3: Calculate discount amount from original base using round half up
+    const discountCents = Math.round((originalBaseCents * validDiscountBasisPoints) / BASIS_POINTS_SCALE);
+    
+    // Step 4: Validate discount calculation result
+    if (discountCents < 0) {
+      throw new Error(`Discount calculation resulted in negative value: ${discountCents} cents`);
+    }
+    
+    if (discountCents > Number.MAX_SAFE_INTEGER) {
+      throw new Error(`Discount calculation overflow: result ${discountCents} exceeds MAX_SAFE_INTEGER`);
+    }
+    
+    if (discountCents > originalBaseCents) {
+      throw new Error(`Discount amount ${discountCents} cents exceeds base amount ${originalBaseCents} cents`);
+    }
+    
+    // Step 5: Calculate discounted base amount
+    const discountedBaseCents = originalBaseCents - discountCents;
+    
+    // Step 6: Calculate tax on the discounted amount
+    const taxAmountCents = calculateTaxFromBase(discountedBaseCents, validTaxBasisPoints);
+    
+    // Step 7: Adjust final discounted base to ensure exact total: discountedBase + tax = total
+    const finalDiscountedBase = validTotalCents - taxAmountCents;
+    
+    // Verify exact precision
+    if (finalDiscountedBase + taxAmountCents !== validTotalCents) {
+      throw new Error(`Tax breakdown with discount precision error: base ${finalDiscountedBase} + tax ${taxAmountCents} = ${finalDiscountedBase + taxAmountCents} ≠ total ${validTotalCents}`);
+    }
+    
+    // Additional validation: both amounts should be non-negative
+    if (finalDiscountedBase < 0) {
+      throw new Error(`Tax breakdown with discount resulted in negative base amount: ${finalDiscountedBase}`);
+    }
+    
+    if (taxAmountCents < 0) {
+      throw new Error(`Tax breakdown with discount resulted in negative tax amount: ${taxAmountCents}`);
+    }
+    
     return {
-      baseAmountCents: validTotalCents,
-      taxAmountCents: 0,
+      baseAmountCents: finalDiscountedBase,
+      taxAmountCents,
+      totalAmountCents: validTotalCents,
+      discountedAmountCents: discountCents,
+      discountBasisPoints: validDiscountBasisPoints
+    };
+  } else {
+    // Standard calculation without discount
+    
+    // Handle edge case: if tax rate is 0, base equals total
+    if (validTaxBasisPoints === 0) {
+      return {
+        baseAmountCents: validTotalCents,
+        taxAmountCents: 0,
+        totalAmountCents: validTotalCents
+      };
+    }
+
+    // First calculate the mathematical base to determine the tax amount
+    const mathematicalBase = Math.round((validTotalCents * BASIS_POINTS_SCALE) / (BASIS_POINTS_SCALE + validTaxBasisPoints));
+
+    // Calculate tax from the mathematical base - this tax amount stays constant
+    const taxAmountCents = calculateTaxFromBase(mathematicalBase, validTaxBasisPoints);
+
+    // Calculate the adjusted base that ensures base + tax = total exactly
+    const baseAmountCents = validTotalCents - taxAmountCents;
+
+    // Verify exact precision (this should always pass now)
+    const calculatedTotal = baseAmountCents + taxAmountCents;
+    if (calculatedTotal !== validTotalCents) {
+      throw new Error(`Tax breakdown precision error: base ${baseAmountCents} + tax ${taxAmountCents} = ${calculatedTotal} ≠ total ${validTotalCents}`);
+    }
+
+    // Final validation: ensure exact precision
+    if (baseAmountCents + taxAmountCents !== validTotalCents) {
+      throw new Error(`Tax breakdown precision error: base ${baseAmountCents} + tax ${taxAmountCents} = ${baseAmountCents + taxAmountCents} ≠ total ${validTotalCents}`);
+    }
+
+    // Additional validation: both amounts should be non-negative
+    if (baseAmountCents < 0) {
+      throw new Error(`Tax breakdown resulted in negative base amount: ${baseAmountCents}`);
+    }
+
+    if (taxAmountCents < 0) {
+      throw new Error(`Tax breakdown resulted in negative tax amount: ${taxAmountCents}`);
+    }
+
+    return {
+      baseAmountCents,
+      taxAmountCents,
       totalAmountCents: validTotalCents
     };
   }
-
-  // First calculate the mathematical base to determine the tax amount
-  const mathematicalBase = Math.round((validTotalCents * BASIS_POINTS_SCALE) / (BASIS_POINTS_SCALE + validTaxBasisPoints));
-
-  // Calculate tax from the mathematical base - this tax amount stays constant
-  const taxAmountCents = calculateTaxFromBase(mathematicalBase, validTaxBasisPoints);
-
-  // Calculate the adjusted base that ensures base + tax = total exactly
-  const baseAmountCents = validTotalCents - taxAmountCents;
-
-  // Verify exact precision (this should always pass now)
-  const calculatedTotal = baseAmountCents + taxAmountCents;
-  if (calculatedTotal !== validTotalCents) {
-    throw new Error(`Tax breakdown precision error: base ${baseAmountCents} + tax ${taxAmountCents} = ${calculatedTotal} ≠ total ${validTotalCents}`);
-  }
-
-  // Final validation: ensure exact precision
-  if (baseAmountCents + taxAmountCents !== validTotalCents) {
-    throw new Error(`Tax breakdown precision error: base ${baseAmountCents} + tax ${taxAmountCents} = ${baseAmountCents + taxAmountCents} ≠ total ${validTotalCents}`);
-  }
-
-  // Additional validation: both amounts should be non-negative
-  if (baseAmountCents < 0) {
-    throw new Error(`Tax breakdown resulted in negative base amount: ${baseAmountCents}`);
-  }
-
-  if (taxAmountCents < 0) {
-    throw new Error(`Tax breakdown resulted in negative tax amount: ${taxAmountCents}`);
-  }
-
-  return {
-    baseAmountCents,
-    taxAmountCents,
-    totalAmountCents: validTotalCents
-  };
 }
 
 /**

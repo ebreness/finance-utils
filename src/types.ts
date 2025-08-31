@@ -40,6 +40,17 @@ export interface TaxCalculationResult {
 }
 
 /**
+ * Result of tax calculation with discount information included
+ * Extends TaxCalculationResult to include discount-specific fields
+ */
+export interface TaxCalculationWithDiscountResult extends TaxCalculationResult {
+  /** Discount amount applied in cents */
+  discountedAmountCents: AmountCents;
+  /** Discount rate in basis points */
+  discountBasisPoints: BasisPoints;
+}
+
+/**
  * Options for formatting monetary amounts and percentages
  */
 export interface FormatOptions {
