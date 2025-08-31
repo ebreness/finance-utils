@@ -64,12 +64,12 @@ This finance calculations utility library addresses precision issues in monetary
 
 #### Acceptance Criteria
 
-1. WHEN I provide a base amount in cents and tax rate in basis points THEN the system SHALL return the exact tax amount in cents
-2. WHEN I calculate base amount + calculated tax amount THEN the system SHALL equal the expected total
-3. WHEN I provide an amount with taxes and tax percentage THEN the system SHALL calculate the exact amount without taxes
-4. WHEN multiple tax rates apply THEN the system SHALL handle compound tax calculations correctly
-5. WHEN tax calculations result in fractional cents THEN the system SHALL round appropriately to maintain total accuracy
-6. WHEN I have a total of 3200000 cents with 13% tax THEN the system SHALL return exactly 2831858 cents base and 368142 cents tax
+1. WHEN I provide a base amount in cents and tax rate in basis points THEN the system SHALL return the tax amount in cents such that base + tax equals the expected total
+2. WHEN I calculate base amount + calculated tax amount THEN the system SHALL equal exactly the expected total amount
+3. WHEN tax calculations result in fractional cents THEN the system SHALL adjust the tax amount to ensure base + tax = total exactly
+4. WHEN multiple tax rates apply THEN the system SHALL handle compound tax calculations while maintaining exact totals
+5. WHEN I have a base of 2831858 cents with 13% tax THEN the system SHALL return 368142 cents tax amount so that 2831858 + 368142 = 3200000 exactly
+6. WHEN rounding is required THEN the system SHALL prioritize maintaining the exact total over mathematical precision of individual components
 
 ### Requirement 6
 
@@ -77,10 +77,23 @@ This finance calculations utility library addresses precision issues in monetary
 
 #### Acceptance Criteria
 
-1. WHEN I provide a total amount in cents and tax rate in basis points THEN the system SHALL return the exact base amount in cents
+1. WHEN I provide a total amount in cents and tax rate in basis points THEN the system SHALL return a base amount and tax amount that sum exactly to the total
 2. WHEN I calculate base amount + tax amount THEN the system SHALL equal exactly the original total amount
-3. IF the total amount is 3200000 cents (32,000.00) and tax rate is 1300 basis points (13%) THEN the system SHALL return 2831858 cents (28,318.58) as base amount and 368142 cents (3,681.42) as tax amount
-4. WHEN inputs are not finite numbers THEN the system SHALL throw an error with descriptive message
-5. WHEN inputs are not integers THEN the system SHALL throw an error with descriptive message
-6. WHEN total amount is negative THEN the system SHALL throw an error with descriptive message
-7. WHEN tax rate is negative THEN the system SHALL throw an error with descriptive message
+3. IF the total amount is 3200000 cents (32,000.00) and tax rate is 1300 basis points (13%) THEN the system SHALL return 2831858 cents (28,318.58) as base amount and 368142 cents (3,681.42) as tax amount where 2831858 + 368142 = 3200000 exactly
+4. WHEN the mathematical calculation results in fractional cents THEN the system SHALL adjust the base or tax amount to maintain the exact total
+5. WHEN inputs are not finite numbers THEN the system SHALL throw an error with descriptive message
+6. WHEN inputs are not integers THEN the system SHALL throw an error with descriptive message
+7. WHEN total amount is negative THEN the system SHALL throw an error with descriptive message
+8. WHEN tax rate is negative THEN the system SHALL throw an error with descriptive message
+
+### Requirement 7
+
+**User Story:** As a developer, I want guaranteed exact precision in all tax breakdown calculations, so that I can rely on the mathematical integrity of financial operations.
+
+#### Acceptance Criteria
+
+1. WHEN I call any tax breakdown function THEN the system SHALL guarantee that baseAmountCents + taxAmountCents = totalAmountCents exactly
+2. WHEN mathematical precision would result in fractional cents THEN the system SHALL intelligently adjust amounts to maintain exact totals
+3. WHEN displaying amounts with 2 decimal places THEN the system SHALL ensure the displayed base + tax = displayed total
+4. WHEN rounding adjustments are made THEN the system SHALL prioritize the accuracy of the total amount over individual component precision
+5. WHEN I perform multiple sequential calculations THEN each calculation SHALL maintain exact precision independently

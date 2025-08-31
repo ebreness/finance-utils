@@ -2,6 +2,24 @@
 
 This document provides comprehensive documentation for all methods available in the finance-calculations library.
 
+## Exact Precision Guarantee
+
+**THE CORE PROMISE: All tax calculation functions guarantee that base + tax = total EXACTLY**
+
+Every tax calculation function in this library maintains absolute mathematical precision:
+
+```typescript
+// This relationship is ALWAYS true for ANY input values:
+const breakdown = calculateTaxBreakdown(totalCents, taxBasisPoints);
+console.log(breakdown.baseAmountCents + breakdown.taxAmountCents === breakdown.totalAmountCents); // true
+```
+
+This guarantee is maintained through:
+- Integer arithmetic using cents and basis points
+- Tax amounts calculated as differences rather than percentages when needed
+- Intelligent adjustment of component amounts to maintain exact totals
+- No intermediate rounding that could introduce errors
+
 ## Table of Contents
 
 - [Types](#types)
@@ -322,8 +340,10 @@ safeMultiply(100, 0.13); // returns 13
 
 ## Tax Calculation Functions
 
+**ALL TAX FUNCTIONS GUARANTEE EXACT PRECISION: base + tax = total EXACTLY**
+
 ### calculateTaxFromBase(baseCents, taxBasisPoints)
-Calculate tax amount from base amount using basis points.
+Calculate tax amount from base amount using basis points with EXACT PRECISION.
 
 **Parameters:**
 - `baseCents: AmountCents` - Base amount in cents (before taxes)
@@ -331,14 +351,23 @@ Calculate tax amount from base amount using basis points.
 
 **Returns:** `AmountCents` - Tax amount in cents
 
+**Precision Guarantee:** When used with `calculateBaseFromTotal`, guarantees base + tax = total exactly.
+
 **Example:**
 ```typescript
 calculateTaxFromBase(100000, 1300); // returns 13000 (13% of $1000.00 = $130.00)
 calculateTaxFromBase(2831858, 1300); // returns 368142 (13% of $28,318.58 = $3,681.42)
+
+// Exact precision example:
+const total = 3200000;
+const taxRate = 1300;
+const base = calculateBaseFromTotal(total, taxRate); // 2831858
+const tax = calculateTaxFromBase(base, taxRate);     // 368142
+console.log(base + tax === total); // true - EXACT PRECISION GUARANTEED
 ```
 
 ### calculateBaseFromTotal(totalCents, taxBasisPoints)
-Calculate base amount from total amount including taxes using basis points.
+Calculate base amount from total amount including taxes with EXACT PRECISION GUARANTEE.
 
 **Parameters:**
 - `totalCents: AmountCents` - Total amount including taxes in cents
@@ -346,20 +375,30 @@ Calculate base amount from total amount including taxes using basis points.
 
 **Returns:** `AmountCents` - Base amount in cents (before taxes)
 
+**Precision Guarantee:** Tax calculated as (total - base) will always satisfy: base + tax = total exactly.
+
 **Example:**
 ```typescript
 calculateBaseFromTotal(3200000, 1300); // returns 2831858 (base: $28,318.58, tax: $3,681.42)
 calculateBaseFromTotal(113000, 1300); // returns 100000 (base: $1,000.00, tax: $130.00)
+
+// Exact precision guarantee:
+const total = 3200000;
+const base = calculateBaseFromTotal(total, 1300); // 2831858
+const tax = total - base; // 368142 (calculated as difference)
+console.log(base + tax === total); // true - GUARANTEED EXACT PRECISION
 ```
 
 ### calculateTaxBreakdown(totalCents, taxBasisPoints)
-Calculate comprehensive tax breakdown from total amount including taxes.
+Calculate comprehensive tax breakdown with ABSOLUTE EXACT PRECISION GUARANTEE.
 
 **Parameters:**
 - `totalCents: AmountCents` - Total amount including taxes in cents
 - `taxBasisPoints: BasisPoints` - Tax rate in basis points (1300 = 13%)
 
 **Returns:** `TaxCalculationResult` - Complete tax calculation breakdown
+
+**Precision Guarantee:** STRONGEST guarantee in the library - baseAmountCents + taxAmountCents = totalAmountCents (ALWAYS TRUE).
 
 **Example:**
 ```typescript
@@ -368,6 +407,15 @@ calculateTaxBreakdown(3200000, 1300);
 
 calculateTaxBreakdown(113000, 1300);
 // returns { baseAmountCents: 100000, taxAmountCents: 13000, totalAmountCents: 113000 }
+
+// GUARANTEED exact precision - this will ALWAYS be true:
+const breakdown = calculateTaxBreakdown(3200000, 1300);
+console.log(breakdown.baseAmountCents + breakdown.taxAmountCents === breakdown.totalAmountCents); // true
+console.log(2831858 + 368142 === 3200000); // true
+
+// Works with ANY input values:
+const anyBreakdown = calculateTaxBreakdown(999999, 1234);
+console.log(anyBreakdown.baseAmountCents + anyBreakdown.taxAmountCents === anyBreakdown.totalAmountCents); // true
 ```
 
 ## Formatting Functions

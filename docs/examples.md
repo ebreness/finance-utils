@@ -5,6 +5,7 @@ This document provides practical examples of using the finance-calculations libr
 ## Table of Contents
 
 - [Basic Usage](#basic-usage)
+- [Exact Precision Guarantee](#exact-precision-guarantee)
 - [String Input Support](#string-input-support)
 - [Tax Calculations](#tax-calculations)
 - [Currency Formatting](#currency-formatting)
@@ -59,6 +60,129 @@ const taxRate = percent100ToBasisPoints(13); // 1300
 
 // Convert 5.5% to basis points
 const salesTax = percent100ToBasisPoints(5.5); // 550
+```
+
+## Exact Precision Guarantee
+
+The library's most important feature is its absolute guarantee that base amount + tax amount = total amount exactly, with no rounding errors.
+
+### The Core Promise
+
+```typescript
+import { calculateTaxBreakdown } from '@ebreness/finance-utils';
+
+// ANY tax breakdown will satisfy: base + tax = total EXACTLY
+const breakdown = calculateTaxBreakdown(3200000, 1300); // $32,000 with 13% tax
+
+// GUARANTEED: This will ALWAYS be true
+console.log(breakdown.baseAmountCents + breakdown.taxAmountCents === breakdown.totalAmountCents); // true
+
+// Real numbers from the calculation:
+console.log(breakdown.baseAmountCents); // 2831858
+console.log(breakdown.taxAmountCents);  // 368142  
+console.log(breakdown.totalAmountCents); // 3200000
+console.log(2831858 + 368142 === 3200000); // true - exact precision!
+```
+
+### Why This Matters
+
+Traditional floating-point arithmetic causes precision errors:
+
+```typescript
+// ❌ Traditional floating-point approach (WRONG)
+const total = 32000;
+const taxRate = 0.13;
+const base = total / (1 + taxRate); // 28318.5840707965
+const roundedBase = Math.round(base * 100) / 100; // 28318.58
+const recalculatedTotal = roundedBase * (1 + taxRate); // 31999.9954 ≠ 32000
+
+console.log(roundedBase * (1 + taxRate) === total); // false - precision error!
+
+// ✅ This library's approach (CORRECT)
+const breakdown = calculateTaxBreakdown(3200000, 1300);
+console.log(breakdown.baseAmountCents + breakdown.taxAmountCents === breakdown.totalAmountCents); // true
+```
+
+### Edge Cases - Precision Still Maintained
+
+The library maintains exact precision even in challenging edge cases:
+
+```typescript
+// Very small amounts
+const tiny = calculateTaxBreakdown(1, 3333); // $0.01 with 33.33% tax
+console.log(tiny.baseAmountCents + tiny.taxAmountCents === 1); // true
+
+// High tax rates  
+const highTax = calculateTaxBreakdown(300, 5000); // $3.00 with 50% tax
+console.log(highTax.baseAmountCents + highTax.taxAmountCents === 300); // true
+console.log(highTax.baseAmountCents); // 200 ($2.00)
+console.log(highTax.taxAmountCents);  // 100 ($1.00)
+
+// Large amounts that might cause precision issues
+const large = calculateTaxBreakdown(999999999, 1300); // $9,999,999.99 with 13% tax
+console.log(large.baseAmountCents + large.taxAmountCents === 999999999); // true
+
+// Zero tax rate
+const noTax = calculateTaxBreakdown(100000, 0); // $1,000 with 0% tax
+console.log(noTax.baseAmountCents === 100000); // true (base = total)
+console.log(noTax.taxAmountCents === 0); // true (no tax)
+console.log(noTax.baseAmountCents + noTax.taxAmountCents === 100000); // true
+
+// Unusual tax rates that would cause floating-point issues
+const unusual = calculateTaxBreakdown(12345, 3333); // $123.45 with 33.33% tax
+console.log(unusual.baseAmountCents + unusual.taxAmountCents === 12345); // true
+```
+
+### Display Formatting Maintains Relationship
+
+Even when amounts are formatted for display, the mathematical relationship holds:
+
+```typescript
+const breakdown = calculateTaxBreakdown(3200000, 1300);
+
+// Format for display
+const baseFormatted = formatCentsWithCurrency(breakdown.baseAmountCents);   // "$28,318.58"
+const taxFormatted = formatCentsWithCurrency(breakdown.taxAmountCents);    // "$3,681.42"
+const totalFormatted = formatCentsWithCurrency(breakdown.totalAmountCents); // "$32,000.00"
+
+console.log(`${baseFormatted} + ${taxFormatted} = ${totalFormatted}`);
+// Output: "$28,318.58 + $3,681.42 = $32,000.00"
+
+// The displayed amounts maintain the exact relationship:
+// $28,318.58 + $3,681.42 = $32,000.00 (exact!)
+```
+
+### How We Achieve This
+
+The library uses a specific algorithm to guarantee exact precision:
+
+```typescript
+// 1. Calculate base using integer arithmetic
+const baseCents = Math.round(totalCents * BASIS_POINTS_SCALE / (BASIS_POINTS_SCALE + taxBasisPoints));
+
+// 2. Calculate tax as the DIFFERENCE (not as a percentage)
+const taxCents = totalCents - baseCents;
+
+// This guarantees: baseCents + taxCents = totalCents EXACTLY
+```
+
+### Verification in Your Code
+
+You can always verify the exact precision guarantee in your own code:
+
+```typescript
+function verifyExactPrecision(totalCents: number, taxBasisPoints: number): boolean {
+  const breakdown = calculateTaxBreakdown(totalCents, taxBasisPoints);
+  return breakdown.baseAmountCents + breakdown.taxAmountCents === breakdown.totalAmountCents;
+}
+
+// Test with various inputs
+console.log(verifyExactPrecision(3200000, 1300)); // true
+console.log(verifyExactPrecision(1, 9999));       // true  
+console.log(verifyExactPrecision(999999999, 1));  // true
+console.log(verifyExactPrecision(12345, 6789));   // true
+
+// This will ALWAYS return true, regardless of input values
 ```
 
 ## String Input Support

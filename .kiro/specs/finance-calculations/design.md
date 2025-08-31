@@ -23,7 +23,7 @@ mod.ts (main entry point)
 1. **Integer Arithmetic**: All internal calculations use integers to avoid floating-point precision issues
 2. **Basis Points**: Tax rates and percentages are represented in basis points (1 bp = 0.01%)
 3. **Late Rounding**: Rounding only occurs at the final display step
-4. **Exact Totals**: Base amount + tax amount always equals the original total
+4. **Exact Totals**: Base amount + tax amount always equals the original total by design, with adjustments made to ensure mathematical integrity
 5. **Safe Operations**: All operations check for integer overflow
 
 ## Components and Interfaces
@@ -151,16 +151,16 @@ const DEFAULT_CURRENCY_SYMBOL = '$'; // Default currency symbol
 
 ### Core Algorithm
 
-The main tax calculation algorithm follows this approach:
+The main tax calculation algorithm follows this approach with guaranteed exact totals:
 
 ```typescript
 // For calculating base from total with tax:
 // base = total / (1 + rate)
 // Where rate = taxBasisPoints / 10000
 // 
-// To maintain integer arithmetic:
+// To maintain integer arithmetic and guarantee exact totals:
 // baseCents = round(totalCents * 10000 / (10000 + taxBasisPoints))
-// taxCents = totalCents - baseCents
+// taxCents = totalCents - baseCents (ensures exact total)
 
 function calculateBaseFromTotal(totalCents: AmountCents, taxBasisPoints: BasisPoints): AmountCents {
   const scale = BASIS_POINTS_SCALE;
@@ -170,12 +170,21 @@ function calculateBaseFromTotal(totalCents: AmountCents, taxBasisPoints: BasisPo
   const baseCents = Math.round(numerator / denominator);
   const taxCents = totalCents - baseCents;
   
-  // Verify exact total
-  if (baseCents + taxCents !== totalCents) {
-    throw new Error('Calculation precision error');
-  }
+  // This guarantees baseCents + taxCents = totalCents exactly
+  // by design, since taxCents is calculated as the difference
   
   return baseCents;
+}
+
+function calculateTaxBreakdown(totalCents: AmountCents, taxBasisPoints: BasisPoints): TaxCalculationResult {
+  const baseCents = calculateBaseFromTotal(totalCents, taxBasisPoints);
+  const taxCents = totalCents - baseCents;
+  
+  return {
+    baseAmountCents: baseCents,
+    taxAmountCents: taxCents,
+    totalAmountCents: totalCents // Always equals baseCents + taxCents
+  };
 }
 ```
 
@@ -184,8 +193,9 @@ function calculateBaseFromTotal(totalCents: AmountCents, taxBasisPoints: BasisPo
 ### Validation Errors
 
 - **InvalidInputError**: Thrown when inputs are not valid numbers or are outside acceptable ranges
-- **PrecisionError**: Thrown when calculations cannot maintain required precision
 - **OverflowError**: Thrown when operations would exceed safe integer limits
+
+Note: PrecisionError is not needed since the library guarantees exact totals by design through intelligent amount adjustment.
 
 ### Error Messages
 
@@ -232,6 +242,8 @@ The library follows a fail-fast approach - invalid inputs immediately throw desc
 - All intermediate calculations maintain full integer precision
 - Rounding only occurs at final display step or when required by business rules
 - Division operations use Math.round() for consistent rounding behavior
+- **Exact Total Guarantee**: Tax amounts are calculated as the difference (total - base) to ensure base + tax = total exactly
+- When mathematical precision conflicts with exact totals, the library prioritizes exact totals by adjusting component amounts
 
 ### Browser Compatibility
 

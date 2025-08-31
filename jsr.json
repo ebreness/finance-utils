@@ -1,6 +1,6 @@
 {
     "name": "@ebreness/finance-utils",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "Precision-focused TypeScript utility library for financial calculations and formatting",
     "license": "MIT",
     "exports": {
